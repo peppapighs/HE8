@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "HE8_switchplate")(type "KiCad")(uri "${KIPRJMOD}/HE8_switchplate.pretty")(options "")(descr ""))
+)
