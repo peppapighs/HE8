@@ -1,3 +1,7 @@
-[submodule "tinyusb"]
+[submodule "bootloader/Libs/tinyusb"]
 	path = bootloader/Libs/tinyusb
+	url = https://github.com/hathach/tinyusb.git
+
+[submodule "firmware/Libs/tinyusb"]
+	path = firmware/Libs/tinyusb
 	url = https://github.com/hathach/tinyusb.git
