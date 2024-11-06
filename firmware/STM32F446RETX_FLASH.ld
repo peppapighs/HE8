@@ -46,7 +46,7 @@ MEMORY
 {
   /* Reserve last 4 bytes for boot flag */
   RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 128K - 4
-  FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 512K
+  FLASH    (rx)    : ORIGIN = 0x8020000,   LENGTH = 128K
 }
 
 /* Sections */

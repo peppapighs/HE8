@@ -67,7 +67,8 @@ static bool verify_firmware(void) {
         *(const fw_metadata_t *)(FW_BASE_ADDRESS + i);
     if (metadata.magic1 == FW_MAGIC1 && metadata.magic2 == FW_MAGIC2) {
       // Perform CRC32 check
-      uint32_t crc32 = HAL_CRC_Calculate(&hcrc, (uint32_t *)FW_BASE_ADDRESS, i);
+      uint32_t crc32 =
+          HAL_CRC_Calculate(&hcrc, (uint32_t *)FW_BASE_ADDRESS, i >> 2);
 
       return (crc32 == metadata.crc32);
     }
