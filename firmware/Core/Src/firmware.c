@@ -19,14 +19,14 @@ enum {
 
 typedef struct {
   // Calibration data
-  uint16_t min_value;
-  uint16_t max_value;
+  uint32_t min_value;
+  uint32_t max_value;
 
   // Current state
   uint8_t state;
-  uint16_t adc_value;
-  uint16_t distance;
-  uint16_t peek_distance;
+  uint32_t adc_value;
+  uint32_t distance;
+  uint32_t peek_distance;
   bool pressed;
 } key_switch_t;
 
@@ -40,11 +40,11 @@ static void key_switch_init(void);
 static void keyboard_task(void);
 
 // Calibrate key switch during calibration rounds
-static void calibrate_key_switch(uint8_t key_index, uint16_t adc_value);
+static void calibrate_key_switch(uint8_t key_index, uint32_t adc_value);
 // Convert ADC value to switch travel distance
-static uint16_t adc_value_to_distance(uint8_t key_index, uint16_t adc_value);
+static uint32_t adc_value_to_distance(uint8_t key_index, uint32_t adc_value);
 // Process rapid trigger key switch
-static void process_rapid_trigger(uint8_t key_index, uint16_t adc_value);
+static void process_rapid_trigger(uint8_t key_index, uint32_t adc_value);
 
 void firmware_init(void) {
   calibration_round = 0;
@@ -66,8 +66,9 @@ void firmware_loop(void) {
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
   if (hadc == &hadc1) {
+    uint32_t adc_value = HAL_ADC_GetValue(&hadc1);
+
     for (uint8_t i = 0; i < NUM_MUX; i++) {
-      uint16_t adc_value = HAL_ADC_GetValue(&hadc1);
 
       if (calibration_round < CALIBRATION_ROUNDS)
         calibrate_key_switch(mux_matrices[i][current_mux_index], adc_value);
@@ -131,7 +132,7 @@ static void keyboard_task(void) {
   tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifier, key_codes);
 }
 
-static void calibrate_key_switch(uint8_t key_index, uint16_t adc_value) {
+static void calibrate_key_switch(uint8_t key_index, uint32_t adc_value) {
   key_switch_t *key = &key_switches[key_index];
 
   if (adc_value > key->max_value) {
@@ -144,7 +145,7 @@ static void calibrate_key_switch(uint8_t key_index, uint16_t adc_value) {
   }
 }
 
-static uint16_t adc_value_to_distance(uint8_t key_index, uint16_t adc_value) {
+static uint32_t adc_value_to_distance(uint8_t key_index, uint32_t adc_value) {
   key_switch_t *key = &key_switches[key_index];
 
   if (adc_value > key->max_value || key->min_value >= key->max_value)
@@ -152,13 +153,14 @@ static uint16_t adc_value_to_distance(uint8_t key_index, uint16_t adc_value) {
   if (adc_value < key->min_value)
     return SWITCH_DISTANCE;
 
-  uint32_t delta_sq = (uint32_t)(key->max_value - adc_value);
-  uint32_t range_sq = (uint32_t)(key->max_value - key->min_value);
+  // Linear interpolation
+  uint32_t delta = key->max_value - adc_value;
+  uint32_t range = key->max_value - key->min_value;
 
-  return (uint16_t)(delta_sq * SWITCH_DISTANCE / range_sq);
+  return delta * SWITCH_DISTANCE / range;
 }
 
-static void process_rapid_trigger(uint8_t key_index, uint16_t adc_value) {
+static void process_rapid_trigger(uint8_t key_index, uint32_t adc_value) {
   key_switch_t *key = &key_switches[key_index];
 
   key->adc_value = adc_value;
