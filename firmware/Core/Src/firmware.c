@@ -9,6 +9,7 @@
 
 #include "tusb.h"
 
+#include "keyboard_config.h"
 #include "usb_descriptors.h"
 
 enum {
@@ -23,28 +24,27 @@ typedef struct {
   uint32_t max_value;
 
   // Current state
-  uint8_t state;
   uint32_t adc_value;
   uint32_t distance;
   uint32_t peek_distance;
+  uint8_t state;
   bool pressed;
-} key_switch_t;
+} __attribute__((packed)) key_state_t;
 
 static uint8_t calibration_round;
 static uint8_t current_mux_index;
-static key_switch_t key_switches[NUM_KEYS];
+static key_state_t key_switches[NUM_KEYS];
 
 // Initialize key switches before firmware starts
 static void key_switch_init(void);
 // Keyboard task
 static void keyboard_task(void);
-
 // Calibrate key switch during calibration rounds
 static void calibrate_key_switch(uint8_t key_index, uint32_t adc_value);
 // Convert ADC value to switch travel distance
 static uint32_t adc_value_to_distance(uint8_t key_index, uint32_t adc_value);
-// Process rapid trigger key switch
-static void process_rapid_trigger(uint8_t key_index, uint32_t adc_value);
+// Process ADC value change for a key switch
+static void process_key(uint8_t key_index, uint32_t adc_value);
 
 void firmware_init(void) {
   calibration_round = 0;
@@ -73,7 +73,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
       if (calibration_round < CALIBRATION_ROUNDS)
         calibrate_key_switch(mux_matrices[i][current_mux_index], adc_value);
       else
-        process_rapid_trigger(mux_matrices[i][current_mux_index], adc_value);
+        process_key(mux_matrices[i][current_mux_index], adc_value);
     }
 
     current_mux_index = (current_mux_index + 1) & (NUM_KEYS_PER_MUX - 1);
@@ -115,13 +115,14 @@ static void keyboard_task(void) {
 
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
     if (key_switches[i].pressed) {
-      uint8_t key_code = keymap[i];
+      // TODO: Implement keymap layers
+      uint16_t keycode = keyboard_config.keymap[0][0][i];
 
-      if (key_code < 0xE0) {
-        key_codes[key_codes_count] = key_code;
+      if (!IS_MODIFIER(keycode)) {
+        key_codes[key_codes_count] = keycode;
         key_codes_count++;
       } else {
-        modifier |= (1 << (key_code - 0xE0));
+        modifier |= GET_MODIFIER_FLAG(keycode);
       }
 
       if (key_codes_count == 6)
@@ -133,46 +134,60 @@ static void keyboard_task(void) {
 }
 
 static void calibrate_key_switch(uint8_t key_index, uint32_t adc_value) {
-  key_switch_t *key = &key_switches[key_index];
+  key_state_t *key = &key_switches[key_index];
 
   if (adc_value > key->max_value) {
     key->max_value = adc_value;
 
-    if (adc_value >= ADC_LOWER_BOUND)
-      key->min_value = adc_value - ADC_LOWER_BOUND;
+    uint32_t const adc_offset =
+        switch_profiles[keyboard_config.switch_profile].adc_offset;
+    if (adc_value >= adc_offset)
+      key->min_value = adc_value - adc_offset;
     else
       key->min_value = 0;
   }
 }
 
 static uint32_t adc_value_to_distance(uint8_t key_index, uint32_t adc_value) {
-  key_switch_t *key = &key_switches[key_index];
+  key_state_t *key = &key_switches[key_index];
 
+  uint32_t const switch_distance =
+      switch_profiles[keyboard_config.switch_profile].travel_distance;
   if (adc_value > key->max_value || key->min_value >= key->max_value)
     return 0;
   if (adc_value < key->min_value)
-    return SWITCH_DISTANCE;
+    return switch_distance;
 
   // Linear interpolation
   uint32_t delta = key->max_value - adc_value;
   uint32_t range = key->max_value - key->min_value;
 
-  return delta * SWITCH_DISTANCE / range;
+  return delta * switch_distance / range;
 }
 
-static void process_rapid_trigger(uint8_t key_index, uint32_t adc_value) {
-  key_switch_t *key = &key_switches[key_index];
+void process_actuation(uint8_t key_index) {
+  key_state_t *key = &key_switches[key_index];
 
-  key->adc_value = adc_value;
+  uint32_t const actuation_distance =
+      keyboard_config.key_switch_config[key_index].actuation.actuation_distance;
 
-  // Calibrating min value
-  if (adc_value < key->min_value)
-    key->min_value = adc_value;
+  key->pressed = key->distance >= actuation_distance;
+}
 
-  key->distance = adc_value_to_distance(key_index, adc_value);
+void process_rapid_trigger(uint8_t key_index) {
+  key_state_t *key = &key_switches[key_index];
+
+  uint32_t const actuation_distance =
+      keyboard_config.key_switch_config[key_index]
+          .rapid_trigger.actuation_distance;
+  uint32_t const rt_down_distance = keyboard_config.key_switch_config[key_index]
+                                        .rapid_trigger.rt_down_distance;
+  uint32_t const rt_up_distance =
+      keyboard_config.key_switch_config[key_index].rapid_trigger.rt_up_distance;
+
   switch (key->state) {
   case KEY_SWITCH_REST:
-    if (key->distance > SWITCH_ACTUATION_DISTANCE) {
+    if (key->distance > actuation_distance) {
       // The key has reached the actuation distance so it is pressed
       key->state = KEY_SWITCH_RT_DOWN;
       key->peek_distance = key->distance;
@@ -181,12 +196,12 @@ static void process_rapid_trigger(uint8_t key_index, uint32_t adc_value) {
     break;
 
   case KEY_SWITCH_RT_DOWN:
-    if (key->distance <= SWITCH_ACTUATION_DISTANCE) {
+    if (key->distance <= actuation_distance) {
       // The key is below the actuation distance so it is released
       key->state = KEY_SWITCH_REST;
       key->peek_distance = key->distance;
       key->pressed = false;
-    } else if (key->distance + SWITCH_RT_UP_DISTANCE < key->peek_distance) {
+    } else if (key->distance + rt_up_distance < key->peek_distance) {
       // The key is released from the peek distance so it is released
       key->state = KEY_SWITCH_RT_UP;
       key->peek_distance = key->distance;
@@ -198,12 +213,12 @@ static void process_rapid_trigger(uint8_t key_index, uint32_t adc_value) {
     break;
 
   case KEY_SWITCH_RT_UP:
-    if (key->distance <= SWITCH_ACTUATION_DISTANCE) {
+    if (key->distance <= actuation_distance) {
       // The key is below the actuation distance so it is released
       key->state = KEY_SWITCH_REST;
       key->peek_distance = key->distance;
       key->pressed = false;
-    } else if (key->peek_distance + SWITCH_RT_UP_DISTANCE < key->distance) {
+    } else if (key->peek_distance + rt_down_distance < key->distance) {
       // The key is pressed from the peek distance so it is pressed
       key->state = KEY_SWITCH_RT_DOWN;
       key->peek_distance = key->distance;
@@ -213,6 +228,35 @@ static void process_rapid_trigger(uint8_t key_index, uint32_t adc_value) {
       key->peek_distance = key->distance;
     }
     break;
+
+  default:
+    break;
+  }
+}
+
+static void process_key(uint8_t key_index, uint32_t adc_value) {
+  key_state_t *key = &key_switches[key_index];
+
+  key->adc_value =
+      (key->adc_value * ADC_SMOOTHING_MULTIPLIER +
+       adc_value * (ADC_SMOOTHING_DIVISOR - ADC_SMOOTHING_MULTIPLIER)) >>
+      ADC_SMOOTHING_SHIFT;
+
+  // Calibrating min value
+  if (key->adc_value < key->min_value)
+    key->min_value = key->adc_value;
+
+  key->distance = adc_value_to_distance(key_index, key->adc_value);
+  switch (keyboard_config.key_switch_config[key_index].mode) {
+  case KEY_MODE_ACTUATION:
+    process_actuation(key_index);
+    break;
+
+  case KEY_MODE_RAPID_TRIGGER:
+    process_rapid_trigger(key_index);
+    break;
+
+    // TODO: Implement continuous rapid trigger
 
   default:
     break;

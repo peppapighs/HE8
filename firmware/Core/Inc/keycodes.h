@@ -211,4 +211,8 @@
 #define KC_RIGHT_ALT (0xE6)
 #define KC_RIGHT_GUI (0xE7)
 
+#define IS_MODIFIER(keycode)                                                   \
+  (KC_LEFT_CONTROL <= (keycode) && (keycode) <= KC_RIGHT_GUI)
+#define GET_MODIFIER_FLAG(keycode) (1 << ((keycode) - KC_LEFT_CONTROL))
+
 #endif /* INC_KEYCODES_H_ */

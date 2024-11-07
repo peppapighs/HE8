@@ -35,19 +35,15 @@
 // Keyboard Configuration
 //--------------------------------------------------------------------+
 
-// Switch distance in units of 0.01mm
-#define SWITCH_DISTANCE 340 // Geon RAW HE
-// #define SWITCH_DISTANCE 350 // Gateron Magnetic Jade
-// #define SWITCH_DISTANCE 400 // Wooting Lekker/Geon Raptor HE
-// #define SWITCH_DISTANCE 410 // Gateron KS-20
-#define SWITCH_ACTUATION_DISTANCE 20
-#define SWITCH_RT_DOWN_DISTANCE 20
-#define SWITCH_RT_UP_DISTANCE 20
+#define KEYBOARD_CONFIG_MAGIC 0xBEEFDEAD
+#define KEYBOARD_CONFIG_VERSION 0x0100
 
 // Number of rounds to calibrate max ADC value
 #define CALIBRATION_ROUNDS 10
-// Lower bound for the range of ADC values
-#define ADC_LOWER_BOUND 600
+// Exponential smoothing factor for ADC values
+#define ADC_SMOOTHING_MULTIPLIER 51
+#define ADC_SMOOTHING_SHIFT 8
+#define ADC_SMOOTHING_DIVISOR (1 << ADC_SMOOTHING_SHIFT)
 
 // Number of keys. Also represents unconnected MUX inputs
 #define NUM_KEYS 8
@@ -55,6 +51,9 @@
 #define NUM_MUX 1
 #define NUM_MUX_SELECT_PINS 3
 #define NUM_KEYS_PER_MUX (1 << NUM_MUX_SELECT_PINS)
+
+#define NUM_PROFILES 1
+#define NUM_LAYERS 1
 
 // GPIO pins for MUX select
 static GPIO_TypeDef *const mux_select_ports[NUM_MUX_SELECT_PINS] = {
@@ -65,10 +64,5 @@ static uint16_t const mux_select_pins[NUM_MUX_SELECT_PINS] = {
 // Key matrix
 static uint8_t const mux_matrices[NUM_MUX][NUM_KEYS_PER_MUX] = {
     {1, 2, 3, 0, 7, 4, 6, 5}};
-
-// Keymap
-static uint8_t const keymap[NUM_KEYS] = {KC_1, KC_2, KC_3, KC_4,
-
-                                         KC_5, KC_6, KC_7, KC_8};
 
 #endif /* INC_FIRMWARE_CONFIG_H_ */
