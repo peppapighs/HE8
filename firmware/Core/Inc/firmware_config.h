@@ -38,12 +38,10 @@
 #define KEYBOARD_CONFIG_MAGIC 0xBEEFDEAD
 #define KEYBOARD_CONFIG_VERSION 0x0100
 
-// Number of rounds to calibrate max ADC value
-#define CALIBRATION_ROUNDS 10
-// Exponential smoothing factor for ADC values
-#define ADC_SMOOTHING_MULTIPLIER 51
-#define ADC_SMOOTHING_SHIFT 8
-#define ADC_SMOOTHING_DIVISOR (1 << ADC_SMOOTHING_SHIFT)
+// Calibration rounds
+#define CALIBRATION_ROUNDS 16
+// ADC exponential smoothing
+#define ADC_EXP_RSHIFT 4
 
 // Number of keys. Also represents unconnected MUX inputs
 #define NUM_KEYS 8

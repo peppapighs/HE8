@@ -21,6 +21,7 @@ static keyboard_config_t keyboard_config = {
           .rapid_trigger =
               {
                   .actuation_distance = 200,
+                  .reset_distance = 20,
                   .rt_down_distance = 10,
                   .rt_up_distance = 10,
               }},
@@ -28,20 +29,23 @@ static keyboard_config_t keyboard_config = {
           .rapid_trigger =
               {
                   .actuation_distance = 200,
+                  .reset_distance = 20,
                   .rt_down_distance = 10,
                   .rt_up_distance = 10,
               }},
          {.mode = KEY_MODE_RAPID_TRIGGER,
           .rapid_trigger =
               {
-                  .actuation_distance = 200,
+                  .actuation_distance = 20,
+                  .reset_distance = 20,
                   .rt_down_distance = 10,
                   .rt_up_distance = 10,
               }},
          {.mode = KEY_MODE_RAPID_TRIGGER,
           .rapid_trigger =
               {
-                  .actuation_distance = 200,
+                  .actuation_distance = 20,
+                  .reset_distance = 20,
                   .rt_down_distance = 10,
                   .rt_up_distance = 10,
               }},
@@ -51,6 +55,9 @@ static keyboard_config_t keyboard_config = {
          {.mode = KEY_MODE_ACTUATION,
           .actuation = {.actuation_distance = 200}}},
 
-    .keymap = {{{KC_1, KC_2, KC_3, KC_4, KC_5, KC_6, KC_7, KC_8}}}};
+    .keymap = {{
+        {KC_Z, KC_X, KC_C, KC_V, KC_LEFT_CONTROL, KC_LEFT_SHIFT, KC_LEFT_ALT,
+         KC_SPACEBAR},
+    }}};
 
 #endif /* INC_KEYBOARD_CONFIG_H_ */

@@ -19,9 +19,9 @@ enum {
 
 typedef struct {
   // In units of 0.01mm
-  uint32_t travel_distance;
+  uint16_t travel_distance;
   // ADC offset used during calibration
-  uint32_t adc_offset;
+  uint16_t adc_offset;
 } __attribute__((packed)) switch_profile_t;
 
 static switch_profile_t const switch_profiles[] = {
@@ -34,27 +34,20 @@ static switch_profile_t const switch_profiles[] = {
 enum {
   KEY_MODE_ACTUATION,
   KEY_MODE_RAPID_TRIGGER,
-  KEY_MODE_CONT_RAPID_TRIGGER,
 };
 
 typedef struct {
   // In units of 0.01mm
-  uint32_t actuation_distance;
+  uint16_t actuation_distance;
 } __attribute__((packed)) key_mode_actuation_config_t;
 
 typedef struct {
   // In units of 0.01mm
-  uint32_t actuation_distance;
-  uint32_t rt_down_distance;
-  uint32_t rt_up_distance;
+  uint16_t actuation_distance;
+  uint16_t reset_distance;
+  uint16_t rt_down_distance;
+  uint16_t rt_up_distance;
 } __attribute__((packed)) key_mode_rapid_trigger_config_t;
-
-typedef struct {
-  // In units of 0.01mm
-  uint32_t actuation_distance;
-  uint32_t rt_down_distance;
-  uint32_t rt_up_distance;
-} __attribute__((packed)) key_mode_cont_rapid_trigger_config_t;
 
 typedef struct {
   uint8_t mode;
@@ -62,7 +55,6 @@ typedef struct {
   union {
     key_mode_actuation_config_t actuation;
     key_mode_rapid_trigger_config_t rapid_trigger;
-    key_mode_cont_rapid_trigger_config_t cont_rapid_trigger;
   };
 } __attribute__((packed)) key_switch_config_t;
 
