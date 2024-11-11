@@ -25,11 +25,11 @@ typedef struct {
 } __attribute__((packed)) switch_profile_t;
 
 static switch_profile_t const switch_profiles[] = {
-    [SWITCH_PROF_GEON_RAW_HE] = {.travel_distance = 340, .adc_offset = 600},
+    [SWITCH_PROF_GEON_RAW_HE] = {.travel_distance = 340, .adc_offset = 700},
     [SWITCH_PROF_GATERON_MAGNETIC_JADE] = {.travel_distance = 350,
-                                           .adc_offset = 600},
-    [SWITCH_PROF_WOOTING_LEKKER] = {.travel_distance = 400, .adc_offset = 600},
-    [SWITCH_PROF_GATERON_KS_20] = {.travel_distance = 410, .adc_offset = 600}};
+                                           .adc_offset = 700},
+    [SWITCH_PROF_WOOTING_LEKKER] = {.travel_distance = 400, .adc_offset = 700},
+    [SWITCH_PROF_GATERON_KS_20] = {.travel_distance = 410, .adc_offset = 700}};
 
 enum {
   KEY_MODE_ACTUATION,

@@ -21,7 +21,7 @@ static keyboard_config_t keyboard_config = {
           .rapid_trigger =
               {
                   .actuation_distance = 200,
-                  .reset_distance = 20,
+                  .reset_distance = 10,
                   .rt_down_distance = 10,
                   .rt_up_distance = 10,
               }},
@@ -29,23 +29,23 @@ static keyboard_config_t keyboard_config = {
           .rapid_trigger =
               {
                   .actuation_distance = 200,
-                  .reset_distance = 20,
+                  .reset_distance = 10,
                   .rt_down_distance = 10,
                   .rt_up_distance = 10,
               }},
          {.mode = KEY_MODE_RAPID_TRIGGER,
           .rapid_trigger =
               {
-                  .actuation_distance = 20,
-                  .reset_distance = 20,
+                  .actuation_distance = 10,
+                  .reset_distance = 10,
                   .rt_down_distance = 10,
                   .rt_up_distance = 10,
               }},
          {.mode = KEY_MODE_RAPID_TRIGGER,
           .rapid_trigger =
               {
-                  .actuation_distance = 20,
-                  .reset_distance = 20,
+                  .actuation_distance = 10,
+                  .reset_distance = 10,
                   .rt_down_distance = 10,
                   .rt_up_distance = 10,
               }},

@@ -41,6 +41,7 @@
 // Calibration rounds
 #define CALIBRATION_ROUNDS 16
 // ADC exponential smoothing
+// Higher the value, slower the response, but more stable
 #define ADC_EXP_RSHIFT 4
 
 // Number of keys. Also represents unconnected MUX inputs

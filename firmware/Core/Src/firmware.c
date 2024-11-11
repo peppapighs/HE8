@@ -159,11 +159,14 @@ uint16_t adc_value_to_distance(uint8_t key_index) {
   if (key->adc_value < key->min_value)
     return switch_distance;
 
-  // Linear interpolation
-  uint32_t delta = key->max_value - key->adc_value;
-  uint32_t range = key->max_value - key->min_value;
+  // Quadratic interpolation
+  uint32_t const numerator = (uint32_t)(key->adc_value - key->min_value) *
+                             (key->adc_value - key->min_value) *
+                             switch_distance;
+  uint32_t const denominator = (uint32_t)(key->max_value - key->min_value) *
+                               (key->max_value - key->min_value);
 
-  return delta * switch_distance / range;
+  return (uint32_t)switch_distance - numerator / denominator;
 }
 
 void process_actuation(uint8_t key_index) {
