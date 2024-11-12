@@ -65,6 +65,8 @@ typedef struct {
 
   // Switch profile
   uint8_t switch_profile;
+  // Current keymap profile
+  uint8_t keymap_profile;
   // Key switch configuration
   key_switch_config_t key_switch_config[NUM_KEYS];
   // Keymap

@@ -209,14 +209,22 @@ enum {
   KC_WFAV = 0x00BB,
 
   // Modifier keycodes
-  KC_LCTL = 0xE0,
-  KC_LSFT = 0xE1,
-  KC_LALT = 0xE2,
-  KC_LGUI = 0xE3,
-  KC_RCTL = 0xE4,
-  KC_RSFT = 0xE5,
-  KC_RALT = 0xE6,
-  KC_RGUI = 0xE7,
+  KC_LCTL = 0x00E0,
+  KC_LSFT = 0x00E1,
+  KC_LALT = 0x00E2,
+  KC_LGUI = 0x00E3,
+  KC_RCTL = 0x00E4,
+  KC_RSFT = 0x00E5,
+  KC_RALT = 0x00E6,
+  KC_RGUI = 0x00E7,
+
+  // Layer keycodes (support up to 16 layers)
+  LAYER_MOMENTARY = 0x5200,
+  LAYER_MOMENTARY_MAX = 0x520F,
+  LAYER_DEFAULT = 0x5210,
+  LAYER_DEFAULT_MAX = 0x521F,
+  LAYER_TOGGLE = 0x5220,
+  LAYER_TOGGLE_MAX = 0x522F,
 
   // Aliases
   XXXXXXX = KC_NO,
@@ -232,6 +240,26 @@ enum {
 #define IS_CONSUMER_CONTROL_KEY(keycode)                                       \
   (KC_BRIU <= keycode && keycode <= KC_WFAV)
 #define IS_MODIFIER_KEY(keycode) (KC_LCTL <= keycode && keycode <= KC_RGUI)
+
+#define IS_LAYER_MOMENTARY(keycode)                                            \
+  (LAYER_MOMENTARY <= keycode && keycode <= LAYER_MOMENTARY_MAX)
+#define IS_LAYER_DEFAULT(keycode)                                              \
+  (LAYER_DEFAULT <= keycode && keycode <= LAYER_DEFAULT_MAX)
+#define IS_LAYER_TOGGLE(keycode)                                               \
+  (LAYER_TOGGLE <= keycode && keycode <= LAYER_TOGGLE_MAX)
+
+//--------------------------------------------------------------------+
+// Layer Macros
+//--------------------------------------------------------------------+
+
+#define MO(layer) (LAYER_MOMENTARY | (layer))
+#define MO_LAYER(keycode) ((keycode) & 0x000F)
+
+#define DF(layer) (LAYER_DEFAULT | (layer))
+#define DF_LAYER(keycode) ((keycode) & 0x000F)
+
+#define TG(layer) (LAYER_TOGGLE | (layer))
+#define TG_LAYER(keycode) ((keycode) & 0x000F)
 
 //--------------------------------------------------------------------+
 // Keycode Conversion Functions

@@ -16,6 +16,7 @@ static keyboard_config_t keyboard_config = {
     .version = KEYBOARD_CONFIG_VERSION,
 
     .switch_profile = SWITCH_PROF_GEON_RAW_HE,
+    .keymap_profile = 0,
 
     .key_switch_config =
         {{.mode = KEY_MODE_RAPID_TRIGGER,
@@ -57,7 +58,8 @@ static keyboard_config_t keyboard_config = {
           .actuation = {.actuation_distance = 200}}},
 
     .keymap = {{
-        {KC_Z, KC_X, KC_C, KC_V, KC_LCTL, KC_SLEP, KC_VOLD, KC_VOLU},
+        {KC_Z, KC_X, KC_C, KC_V, KC_LCTL, TG(1), KC_VOLD, KC_VOLU},
+        {KC_A, KC_S, KC_D, KC_F, _______, _______, _______, _______},
     }}};
 
 #endif /* INC_KEYBOARD_CONFIG_H_ */

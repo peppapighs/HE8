@@ -40,6 +40,7 @@
 // TinyUSB supports up to 6 keys per report
 #define KEY_ROLL_OVER 6
 
+#define ADC_MAX_VALUE 4095
 // Calibration rounds
 #define CALIBRATION_ROUNDS 16
 // ADC exponential smoothing
@@ -54,7 +55,7 @@
 #define NUM_KEYS_PER_MUX (1 << NUM_MUX_SELECT_PINS)
 
 #define NUM_PROFILES 1
-#define NUM_LAYERS 1
+#define NUM_LAYERS 2
 
 // GPIO pins for MUX select
 static GPIO_TypeDef *const mux_select_ports[NUM_MUX_SELECT_PINS] = {

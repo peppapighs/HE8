@@ -40,6 +40,13 @@ static uint8_t current_mux_index;
 static key_state_t key_switches[NUM_KEYS];
 
 //--------------------------------------------------------------------+
+// Keyboard State
+//--------------------------------------------------------------------+
+
+static uint8_t layer_num;
+static uint8_t default_layer_num;
+
+//--------------------------------------------------------------------+
 // HID Related Data
 //--------------------------------------------------------------------+
 
@@ -47,6 +54,10 @@ static key_state_t key_switches[NUM_KEYS];
 static uint8_t keyboard_keycodes_count;
 static uint8_t keyboard_keycodes[REPORT_ID_COUNT];
 static uint8_t keycodes_modifier;
+
+// Keycodes buffer for checking one shot keys
+static uint8_t keycodes_buffer_idx;
+static uint16_t keycodes_buffer[2][NUM_KEYS];
 
 // System control keycode
 static uint16_t system_control_keycode;
@@ -64,7 +75,9 @@ static hid_gamepad_report_t gamepad_report;
 //--------------------------------------------------------------------+
 
 // Initialize key switches before firmware starts
-static void key_switch_init(void);
+static void key_switch_state_init(void);
+// Initialize keyboard state before firmware starts
+static void keyboard_state_init(void);
 // Initialize HID related data before firmware starts
 static void hid_data_init(void);
 // Poll keyboard switches
@@ -81,7 +94,8 @@ static void process_key(uint8_t key_index, uint16_t adc_value);
 //--------------------------------------------------------------------+
 
 void firmware_init(void) {
-  key_switch_init();
+  key_switch_state_init();
+  keyboard_state_init();
   hid_data_init();
 
   HAL_ADC_Start_IT(&hadc1);
@@ -168,12 +182,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 // Helper Functions
 //--------------------------------------------------------------------+
 
-static void key_switch_init(void) {
+static void key_switch_state_init(void) {
   calibration_round = 0;
   current_mux_index = 0;
 
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
-    key_switches[i].min_value = 4095;
+    key_switches[i].min_value = ADC_MAX_VALUE;
     key_switches[i].max_value = 0;
     key_switches[i].adc_value = 0;
     key_switches[i].state = KEY_SWITCH_REST;
@@ -183,33 +197,61 @@ static void key_switch_init(void) {
   }
 }
 
+static void keyboard_state_init(void) {
+  layer_num = 0;
+  default_layer_num = 0;
+}
+
 static void hid_data_init(void) {
   keyboard_keycodes_count = 0;
   keycodes_modifier = 0;
   for (uint8_t i = 0; i < KEY_ROLL_OVER; i++)
     keyboard_keycodes[i] = KC_NO;
 
+  keycodes_buffer_idx = 0;
+  for (uint8_t i = 0; i < NUM_KEYS; i++) {
+    keycodes_buffer[0][i] = KC_NO;
+    keycodes_buffer[1][i] = KC_NO;
+  }
+
   system_control_keycode = KC_NO;
   last_system_control_keycode = KC_NO;
 
   consumer_control_keycode = KC_NO;
   last_consumer_control_keycode = KC_NO;
+
+  gamepad_report = (hid_gamepad_report_t){0};
 }
 
-static void keyboard_task(void) {
-  // Clear HID data
+void clear_hid_data(void) {
   keyboard_keycodes_count = 0;
   for (uint8_t i = 0; i < KEY_ROLL_OVER; i++)
     keyboard_keycodes[i] = KC_NO;
   keycodes_modifier = 0;
+
   system_control_keycode = KC_NO;
+
   consumer_control_keycode = KC_NO;
+
   gamepad_report = (hid_gamepad_report_t){0};
+}
+
+static void keyboard_task(void) {
+  uint8_t const keymap_profile = keyboard_config.keymap_profile;
+  uint16_t *current_keycodes_buffer = keycodes_buffer[keycodes_buffer_idx];
+  uint16_t *previous_keycodes_buffer = keycodes_buffer[keycodes_buffer_idx ^ 1];
+
+  // Clear HID data before polling key switches
+  clear_hid_data();
 
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
+    uint16_t keycode = keyboard_config.keymap[keymap_profile][layer_num][i];
+    if (keycode == KC_TRNS)
+      keycode = keyboard_config.keymap[keymap_profile][default_layer_num][i];
+
     if (key_switches[i].pressed) {
-      // TODO: Implement keymap layers
-      uint16_t keycode = keyboard_config.keymap[0][0][i];
+      // Set the key to the current keycodes buffer
+      current_keycodes_buffer[i] = keycode;
 
       if (IS_KEYBOARD_KEY(keycode)) {
         if (keyboard_keycodes_count >= KEY_ROLL_OVER)
@@ -223,11 +265,33 @@ static void keyboard_task(void) {
         system_control_keycode = keycode_to_system_control(keycode);
       } else if (IS_CONSUMER_CONTROL_KEY(keycode)) {
         consumer_control_keycode = keycode_to_consumer_control(keycode);
+      } else if (IS_LAYER_MOMENTARY(keycode)) {
+        layer_num = MO_LAYER(keycode);
+      } else if (IS_LAYER_DEFAULT(keycode)) {
+        // Prevent multiple default layer changes
+        if (keycode != previous_keycodes_buffer[i]) {
+          if (layer_num == default_layer_num)
+            layer_num = DF_LAYER(keycode);
+          default_layer_num = DF_LAYER(keycode);
+        }
+      } else if (IS_LAYER_TOGGLE(keycode)) {
+        // Prevent multiple toggle layer changes
+        if (keycode != previous_keycodes_buffer[i])
+          layer_num = layer_num == TG_LAYER(keycode) ? default_layer_num
+                                                     : TG_LAYER(keycode);
       } else {
         // TODO: Implement mouse and gamepad
       }
+    } else {
+      // Clear the key from the current keycodes buffer
+      current_keycodes_buffer[i] = KC_NO;
+
+      if (IS_LAYER_MOMENTARY(keycode) && layer_num == MO_LAYER(keycode))
+        layer_num = default_layer_num;
     }
   }
+
+  keycodes_buffer_idx ^= 1;
 }
 
 static bool send_hid_report(uint8_t report_id) {
@@ -238,6 +302,7 @@ static bool send_hid_report(uint8_t report_id) {
     return true;
 
   case REPORT_ID_SYSTEM_CONTROL:
+    // Prevent multiple reports of the same keycode
     if (system_control_keycode != last_system_control_keycode) {
       tud_hid_report(REPORT_ID_SYSTEM_CONTROL, &system_control_keycode,
                      sizeof(system_control_keycode));
@@ -247,6 +312,7 @@ static bool send_hid_report(uint8_t report_id) {
     break;
 
   case REPORT_ID_CONSUMER_CONTROL:
+    // Prevent multiple reports of the same keycode
     if (consumer_control_keycode != last_consumer_control_keycode) {
       tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &consumer_control_keycode,
                      sizeof(consumer_control_keycode));
