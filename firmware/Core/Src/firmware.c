@@ -170,6 +170,7 @@ static void hid_data_init(void) {
 
 static void keyboard_task(void) {
   // Clear HID data
+  keyboard_keycodes_count = 0;
   for (uint8_t i = 0; i < KEY_ROLL_OVER; i++)
     keyboard_keycodes[i] = KC_NO;
   keycodes_modifier = 0;
@@ -186,13 +187,14 @@ static void keyboard_task(void) {
         if (keyboard_keycodes_count >= KEY_ROLL_OVER)
           continue;
 
-        keyboard_keycodes[keyboard_keycodes_count++] = keycode;
+        keyboard_keycodes[keyboard_keycodes_count] = keycode;
+        keyboard_keycodes_count++;
+      } else if (IS_MODIFIER_KEY(keycode)) {
+        keycodes_modifier |= keycode_to_modifier(keycode);
       } else if (IS_SYSTEM_CONTROL_KEY(keycode)) {
         system_control_keycode = keycode_to_system_control(keycode);
       } else if (IS_CONSUMER_CONTROL_KEY(keycode)) {
         consumer_control_keycode = keycode_to_consumer_control(keycode);
-      } else if (IS_MODIFIER_KEY(keycode)) {
-        keycodes_modifier |= keycode_to_modifier(keycode);
       } else {
         // TODO: Implement mouse and gamepad
       }
