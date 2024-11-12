@@ -12,6 +12,10 @@
 #include "keyboard_config.h"
 #include "usb_descriptors.h"
 
+//--------------------------------------------------------------------+
+// Switch State
+//--------------------------------------------------------------------+
+
 enum {
   KEY_SWITCH_REST,
   KEY_SWITCH_RT_DOWN,
@@ -35,19 +39,50 @@ static uint8_t calibration_round;
 static uint8_t current_mux_index;
 static key_state_t key_switches[NUM_KEYS];
 
+//--------------------------------------------------------------------+
+// HID Related Data
+//--------------------------------------------------------------------+
+
+// Keyboard keycodes
+static uint8_t keyboard_keycodes_count;
+static uint8_t keyboard_keycodes[REPORT_ID_COUNT];
+static uint8_t keycodes_modifier;
+
+// System control keycode
+static uint16_t system_control_keycode;
+static uint16_t last_system_control_keycode;
+
+// Consumer control keycode
+static uint16_t consumer_control_keycode;
+static uint16_t last_consumer_control_keycode;
+
+// Gamepad report
+static hid_gamepad_report_t gamepad_report;
+
+//--------------------------------------------------------------------+
+// Prototypes
+//--------------------------------------------------------------------+
+
 // Initialize key switches before firmware starts
 static void key_switch_init(void);
-// Keyboard task
+// Initialize HID related data before firmware starts
+static void hid_data_init(void);
+// Poll keyboard switches
 static void keyboard_task(void);
+// Send HID report. Return true if the report is sent
+static bool send_hid_report(uint8_t report_id);
 // Calibrate key switch during calibration rounds
 static void calibrate_key_switch(uint8_t key_index, uint16_t adc_value);
 // Process ADC value change for a key switch
 static void process_key(uint8_t key_index, uint16_t adc_value);
 
+//--------------------------------------------------------------------+
+// Implementation
+//--------------------------------------------------------------------+
+
 void firmware_init(void) {
-  calibration_round = 0;
-  current_mux_index = 0;
   key_switch_init();
+  hid_data_init();
 
   HAL_ADC_Start_IT(&hadc1);
 
@@ -59,7 +94,22 @@ void firmware_init(void) {
 
 void firmware_loop(void) {
   tud_task();
+
   keyboard_task();
+  if (tud_hid_ready())
+    // Start the HID report chain
+    send_hid_report(REPORT_ID_KEYBOARD);
+}
+
+// Invoked when sent REPORT successfully to host
+// Application can use this to send the next report
+// Note: For composite reports, report[0] is report ID
+void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
+                                uint16_t len) {
+  for (uint8_t i = report[0] + 1; i < REPORT_ID_COUNT; i++) {
+    if (send_hid_report(i))
+      return;
+  }
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
@@ -91,6 +141,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 }
 
 static void key_switch_init(void) {
+  calibration_round = 0;
+  current_mux_index = 0;
+
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
     key_switches[i].min_value = 4095;
     key_switches[i].max_value = 0;
@@ -102,32 +155,89 @@ static void key_switch_init(void) {
   }
 }
 
-static void keyboard_task(void) {
-  if (!tud_hid_ready())
-    return;
+static void hid_data_init(void) {
+  keyboard_keycodes_count = 0;
+  keycodes_modifier = 0;
+  for (uint8_t i = 0; i < KEY_ROLL_OVER; i++)
+    keyboard_keycodes[i] = KC_NO;
 
-  uint8_t keycodes[6] = {0};
-  uint8_t modifier = 0;
-  uint8_t keycodes_count = 0;
+  system_control_keycode = KC_NO;
+  last_system_control_keycode = KC_NO;
+
+  consumer_control_keycode = KC_NO;
+  last_consumer_control_keycode = KC_NO;
+}
+
+static void keyboard_task(void) {
+  // Clear HID data
+  for (uint8_t i = 0; i < KEY_ROLL_OVER; i++)
+    keyboard_keycodes[i] = KC_NO;
+  keycodes_modifier = 0;
+  system_control_keycode = KC_NO;
+  consumer_control_keycode = KC_NO;
+  gamepad_report = (hid_gamepad_report_t){0};
 
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
     if (key_switches[i].pressed) {
       // TODO: Implement keymap layers
       uint16_t keycode = keyboard_config.keymap[0][0][i];
 
-      if (!IS_MODIFIER(keycode)) {
-        keycodes[keycodes_count] = keycode;
-        keycodes_count++;
-      } else {
-        modifier |= GET_MODIFIER_FLAG(keycode);
-      }
+      if (IS_KEYBOARD_KEY(keycode)) {
+        if (keyboard_keycodes_count >= KEY_ROLL_OVER)
+          continue;
 
-      if (keycodes_count == 6)
-        break;
+        keyboard_keycodes[keyboard_keycodes_count++] = keycode;
+      } else if (IS_SYSTEM_CONTROL_KEY(keycode)) {
+        system_control_keycode = keycode_to_system_control(keycode);
+      } else if (IS_CONSUMER_CONTROL_KEY(keycode)) {
+        consumer_control_keycode = keycode_to_consumer_control(keycode);
+      } else if (IS_MODIFIER_KEY(keycode)) {
+        keycodes_modifier |= keycode_to_modifier(keycode);
+      } else {
+        // TODO: Implement mouse and gamepad
+      }
     }
   }
+}
 
-  tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifier, keycodes);
+static bool send_hid_report(uint8_t report_id) {
+  switch (report_id) {
+  case REPORT_ID_KEYBOARD:
+    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, keycodes_modifier,
+                            keyboard_keycodes);
+    return true;
+
+  case REPORT_ID_SYSTEM_CONTROL:
+    if (system_control_keycode != last_system_control_keycode) {
+      tud_hid_report(REPORT_ID_SYSTEM_CONTROL, &system_control_keycode,
+                     sizeof(system_control_keycode));
+      last_system_control_keycode = system_control_keycode;
+      return true;
+    }
+    break;
+
+  case REPORT_ID_CONSUMER_CONTROL:
+    if (consumer_control_keycode != last_consumer_control_keycode) {
+      tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &consumer_control_keycode,
+                     sizeof(consumer_control_keycode));
+      last_consumer_control_keycode = consumer_control_keycode;
+      return true;
+    }
+    break;
+
+  case REPORT_ID_MOUSE:
+    // TODO: Implement mouse
+    break;
+
+  case REPORT_ID_GAMEPAD:
+    // TODO: Implement gamepad
+    break;
+
+  default:
+    break;
+  }
+
+  return false;
 }
 
 static void calibrate_key_switch(uint8_t key_index, uint16_t adc_value) {

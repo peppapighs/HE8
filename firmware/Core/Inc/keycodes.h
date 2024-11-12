@@ -8,211 +8,239 @@
 #ifndef INC_KEYCODES_H_
 #define INC_KEYCODES_H_
 
-#define KC_NO (0x00)
-#define KC_TRNS (0x01)
-#define KC_A (0x04)
-#define KC_B (0x05)
-#define KC_C (0x06)
-#define KC_D (0x07)
-#define KC_E (0x08)
-#define KC_F (0x09)
-#define KC_G (0x0A)
-#define KC_H (0x0B)
-#define KC_I (0x0C)
-#define KC_J (0x0D)
-#define KC_K (0x0E)
-#define KC_L (0x0F)
-#define KC_M (0x10)
-#define KC_N (0x11)
-#define KC_O (0x12)
-#define KC_P (0x13)
-#define KC_Q (0x14)
-#define KC_R (0x15)
-#define KC_S (0x16)
-#define KC_T (0x17)
-#define KC_U (0x18)
-#define KC_V (0x19)
-#define KC_W (0x1A)
-#define KC_X (0x1B)
-#define KC_Y (0x1C)
-#define KC_Z (0x1D)
-#define KC_1 (0x1E)
-#define KC_2 (0x1F)
-#define KC_3 (0x20)
-#define KC_4 (0x21)
-#define KC_5 (0x22)
-#define KC_6 (0x23)
-#define KC_7 (0x24)
-#define KC_8 (0x25)
-#define KC_9 (0x26)
-#define KC_0 (0x27)
-#define KC_ENTER (0x28)
-#define KC_ESCAPE (0x29)
-#define KC_BACKSPACE (0x2A)
-#define KC_TAB (0x2B)
-#define KC_SPACEBAR (0x2C)
-#define KC_MINUS (0x2D)
-#define KC_EQUAL (0x2E)
-#define KC_LEFT_BRACKET (0x2F)
-#define KC_RIGHT_BRACKET (0x30)
-#define KC_BACKSLASH (0x31)
-#define KC_NON_US_HASH (0x32)
-#define KC_SEMICOLON (0x33)
-#define KC_QUOTE (0x34)
-#define KC_GRAVE (0x35)
-#define KC_COMMA (0x36)
-#define KC_DOT (0x37)
-#define KC_SLASH (0x38)
-#define KC_CAPS_LOCK (0x39)
-#define KC_F1 (0x3A)
-#define KC_F2 (0x3B)
-#define KC_F3 (0x3C)
-#define KC_F4 (0x3D)
-#define KC_F5 (0x3E)
-#define KC_F6 (0x3F)
-#define KC_F7 (0x40)
-#define KC_F8 (0x41)
-#define KC_F9 (0x42)
-#define KC_F10 (0x43)
-#define KC_F11 (0x44)
-#define KC_F12 (0x45)
-#define KC_PRINTSCREEN (0x46)
-#define KC_SCROLL_LOCK (0x47)
-#define KC_PAUSE (0x48)
-#define KC_INSERT (0x49)
-#define KC_HOME (0x4A)
-#define KC_PAGE_UP (0x4B)
-#define KC_DELETE (0x4C)
-#define KC_END (0x4D)
-#define KC_PAGE_DOWN (0x4E)
-#define KC_RIGHT (0x4F)
-#define KC_LEFT (0x50)
-#define KC_DOWN (0x51)
-#define KC_UP (0x52)
-#define KC_KP_NUM_LOCK (0x53)
-#define KC_KP_SLASH (0x54)
-#define KC_KP_ASTERISK (0x55)
-#define KC_KP_MINUS (0x56)
-#define KC_KP_PLUS (0x57)
-#define KC_KP_ENTER (0x58)
-#define KC_KP_1 (0x59)
-#define KC_KP_2 (0x5A)
-#define KC_KP_3 (0x5B)
-#define KC_KP_4 (0x5C)
-#define KC_KP_5 (0x5D)
-#define KC_KP_6 (0x5E)
-#define KC_KP_7 (0x5F)
-#define KC_KP_8 (0x60)
-#define KC_KP_9 (0x61)
-#define KC_KP_0 (0x62)
-#define KC_KP_DOT (0x63)
-#define KC_NON_US_BACKSLASH (0x64)
-#define KC_APPLICATION (0x65)
-#define KC_POWER (0x66)
-#define KC_KP_EQUAL (0x67)
-#define KC_F13 (0x68)
-#define KC_F14 (0x69)
-#define KC_F15 (0x6A)
-#define KC_F16 (0x6B)
-#define KC_F17 (0x6C)
-#define KC_F18 (0x6D)
-#define KC_F19 (0x6E)
-#define KC_F20 (0x6F)
-#define KC_F21 (0x70)
-#define KC_F22 (0x71)
-#define KC_F23 (0x72)
-#define KC_F24 (0x73)
-#define KC_EXECUTE (0x74)
-#define KC_HELP (0x75)
-#define KC_MENU (0x76)
-#define KC_SELECT (0x77)
-#define KC_STOP (0x78)
-#define KC_AGAIN (0x79)
-#define KC_UNDO (0x7A)
-#define KC_CUT (0x7B)
-#define KC_COPY (0x7C)
-#define KC_PASTE (0x7D)
-#define KC_FIND (0x7E)
-#define KC_MUTE (0x7F)
-#define KC_VOLUME_UP (0x80)
-#define KC_VOLUME_DOWN (0x81)
-#define KC_LOCKING_CAPS_LOCK (0x82)
-#define KC_LOCKING_NUM_LOCK (0x83)
-#define KC_LOCKING_SCROLL_LOCK (0x84)
-#define KC_KP_COMMA (0x85)
-#define KC_KP_EQUAL_SIGN (0x86)
-#define KC_INTERNATIONAL1 (0x87)
-#define KC_INTERNATIONAL2 (0x88)
-#define KC_INTERNATIONAL3 (0x89)
-#define KC_INTERNATIONAL4 (0x8A)
-#define KC_INTERNATIONAL5 (0x8B)
-#define KC_INTERNATIONAL6 (0x8C)
-#define KC_INTERNATIONAL7 (0x8D)
-#define KC_INTERNATIONAL8 (0x8E)
-#define KC_INTERNATIONAL9 (0x8F)
-#define KC_LANG_1 (0x90)
-#define KC_LANG_2 (0x91)
-#define KC_LANG_3 (0x92)
-#define KC_LANG_4 (0x93)
-#define KC_LANG_5 (0x94)
-#define KC_LANG_6 (0x95)
-#define KC_LANG_7 (0x96)
-#define KC_LANG_8 (0x97)
-#define KC_LANG_9 (0x98)
-#define KC_ALTERNATE_ERASE (0x99)
-#define KC_SYSREQ_ATTENTION (0x9A)
-#define KC_CANCEL (0x9B)
-#define KC_CLEAR (0x9C)
-#define KC_PRIOR (0x9D)
-#define KC_RETURN (0x9E)
-#define KC_SEPARATOR (0x9F)
-#define KC_OUT (0xA0)
-#define KC_OPER (0xA1)
-#define KC_CLEAR_AGAIN (0xA2)
-#define KC_CRSEL_PROPS (0xA3)
-#define KC_EXSEL (0xA4)
-#define KC_SYSTEM_POWER (0xA5)
-#define KC_SYSTEM_SLEEP (0xA6)
-#define KC_SYSTEM_WAKE (0xA7)
-#define KC_AUDIO_MUTE (0xA8)
-#define KC_AUDIO_VOL_UP (0xA9)
-#define KC_AUDIO_VOL_DOWN (0xAA)
-#define KC_MEDIA_NEXT_TRACK (0xAB)
-#define KC_MEDIA_PREV_TRACK (0xAC)
-#define KC_MEDIA_STOP (0xAD)
-#define KC_MEDIA_PLAY_PAUSE (0xAE)
-#define KC_MEDIA_SELECT (0xAF)
-#define KC_MEDIA_EJECT (0xB0)
-#define KC_MAIL (0xB1)
-#define KC_CALCULATOR (0xB2)
-#define KC_MY_COMPUTER (0xB3)
-#define KC_WWW_SEARCH (0xB4)
-#define KC_WWW_HOME (0xB5)
-#define KC_WWW_BACK (0xB6)
-#define KC_WWW_FORWARD (0xB7)
-#define KC_WWW_STOP (0xB8)
-#define KC_WWW_REFRESH (0xB9)
-#define KC_WWW_FAVORITES (0xBA)
-#define KC_MEDIA_FAST_FORWARD (0xBB)
-#define KC_MEDIA_REWIND (0xBC)
-#define KC_BRIGHTNESS_UP (0xBD)
-#define KC_BRIGHTNESS_DOWN (0xBE)
-#define KC_CONTROL_PANEL (0xBF)
-#define KC_ASSISTANT (0xC0)
-#define KC_MISSION_CONTROL (0xC1)
-#define KC_LAUNCHPAD (0xC2)
+#include "tusb.h"
 
-#define KC_LEFT_CONTROL (0xE0)
-#define KC_LEFT_SHIFT (0xE1)
-#define KC_LEFT_ALT (0xE2)
-#define KC_LEFT_GUI (0xE3)
-#define KC_RIGHT_CONTROL (0xE4)
-#define KC_RIGHT_SHIFT (0xE5)
-#define KC_RIGHT_ALT (0xE6)
-#define KC_RIGHT_GUI (0xE7)
+//--------------------------------------------------------------------+
+// Keycode Definitions
+//--------------------------------------------------------------------+
 
-#define IS_MODIFIER(keycode)                                                   \
-  (KC_LEFT_CONTROL <= (keycode) && (keycode) <= KC_RIGHT_GUI)
-#define GET_MODIFIER_FLAG(keycode) (1 << ((keycode) - KC_LEFT_CONTROL))
+enum {
+  KC_NO = HID_KEY_NONE,
+  KC_TRNS = 0x01,
+
+  // Keyboard keycodes
+  KC_A = HID_KEY_A,
+  KC_B = HID_KEY_B,
+  KC_C = HID_KEY_C,
+  KC_D = HID_KEY_D,
+  KC_E = HID_KEY_E,
+  KC_F = HID_KEY_F,
+  KC_G = HID_KEY_G,
+  KC_H = HID_KEY_H,
+  KC_I = HID_KEY_I,
+  KC_J = HID_KEY_J,
+  KC_K = HID_KEY_K,
+  KC_L = HID_KEY_L,
+  KC_M = HID_KEY_M,
+  KC_N = HID_KEY_N,
+  KC_O = HID_KEY_O,
+  KC_P = HID_KEY_P,
+  KC_Q = HID_KEY_Q,
+  KC_R = HID_KEY_R,
+  KC_S = HID_KEY_S,
+  KC_T = HID_KEY_T,
+  KC_U = HID_KEY_U,
+  KC_V = HID_KEY_V,
+  KC_W = HID_KEY_W,
+  KC_X = HID_KEY_X,
+  KC_Y = HID_KEY_Y,
+  KC_Z = HID_KEY_Z,
+  KC_1 = HID_KEY_1,
+  KC_2 = HID_KEY_2,
+  KC_3 = HID_KEY_3,
+  KC_4 = HID_KEY_4,
+  KC_5 = HID_KEY_5,
+  KC_6 = HID_KEY_6,
+  KC_7 = HID_KEY_7,
+  KC_8 = HID_KEY_8,
+  KC_9 = HID_KEY_9,
+  KC_0 = HID_KEY_0,
+  KC_ENT = HID_KEY_ENTER,
+  KC_ESC = HID_KEY_ESCAPE,
+  KC_BSPC = HID_KEY_BACKSPACE,
+  KC_TAB = HID_KEY_TAB,
+  KC_SPC = HID_KEY_SPACE,
+  KC_MINS = HID_KEY_MINUS,
+  KC_EQL = HID_KEY_EQUAL,
+  KC_LBRC = HID_KEY_BRACKET_LEFT,
+  KC_RBRC = HID_KEY_BRACKET_RIGHT,
+  KC_BSLS = HID_KEY_BACKSLASH,
+  KC_NUSH = HID_KEY_EUROPE_1,
+  KC_SCLN = HID_KEY_SEMICOLON,
+  KC_QUOT = HID_KEY_APOSTROPHE,
+  KC_GRV = HID_KEY_GRAVE,
+  KC_COMM = HID_KEY_COMMA,
+  KC_DOT = HID_KEY_PERIOD,
+  KC_SLSH = HID_KEY_SLASH,
+  KC_CAPS = HID_KEY_CAPS_LOCK,
+  KC_F1 = HID_KEY_F1,
+  KC_F2 = HID_KEY_F2,
+  KC_F3 = HID_KEY_F3,
+  KC_F4 = HID_KEY_F4,
+  KC_F5 = HID_KEY_F5,
+  KC_F6 = HID_KEY_F6,
+  KC_F7 = HID_KEY_F7,
+  KC_F8 = HID_KEY_F8,
+  KC_F9 = HID_KEY_F9,
+  KC_F10 = HID_KEY_F10,
+  KC_F11 = HID_KEY_F11,
+  KC_F12 = HID_KEY_F12,
+  KC_PSCR = HID_KEY_PRINT_SCREEN,
+  KC_SCRL = HID_KEY_SCROLL_LOCK,
+  KC_PAUS = HID_KEY_PAUSE,
+  KC_INS = HID_KEY_INSERT,
+  KC_HOME = HID_KEY_HOME,
+  KC_PGUP = HID_KEY_PAGE_UP,
+  KC_DEL = HID_KEY_DELETE,
+  KC_END = HID_KEY_END,
+  KC_PGDN = HID_KEY_PAGE_DOWN,
+  KC_RGHT = HID_KEY_ARROW_RIGHT,
+  KC_LEFT = HID_KEY_ARROW_LEFT,
+  KC_DOWN = HID_KEY_ARROW_DOWN,
+  KC_UP = HID_KEY_ARROW_UP,
+  KC_NUM = HID_KEY_NUM_LOCK,
+  KC_PSLS = HID_KEY_KEYPAD_DIVIDE,
+  KC_PAST = HID_KEY_KEYPAD_MULTIPLY,
+  KC_PMNS = HID_KEY_KEYPAD_SUBTRACT,
+  KC_PPLS = HID_KEY_KEYPAD_ADD,
+  KC_PENT = HID_KEY_KEYPAD_ENTER,
+  KC_P1 = HID_KEY_KEYPAD_1,
+  KC_P2 = HID_KEY_KEYPAD_2,
+  KC_P3 = HID_KEY_KEYPAD_3,
+  KC_P4 = HID_KEY_KEYPAD_4,
+  KC_P5 = HID_KEY_KEYPAD_5,
+  KC_P6 = HID_KEY_KEYPAD_6,
+  KC_P7 = HID_KEY_KEYPAD_7,
+  KC_P8 = HID_KEY_KEYPAD_8,
+  KC_P9 = HID_KEY_KEYPAD_9,
+  KC_P0 = HID_KEY_KEYPAD_0,
+  KC_PDOT = HID_KEY_KEYPAD_DECIMAL,
+  KC_NUBS = HID_KEY_EUROPE_2,
+  KC_APP = HID_KEY_APPLICATION,
+  KC_KB_POWER = HID_KEY_POWER,
+  KC_PEQL = HID_KEY_KEYPAD_EQUAL,
+  KC_F13 = HID_KEY_F13,
+  KC_F14 = HID_KEY_F14,
+  KC_F15 = HID_KEY_F15,
+  KC_F16 = HID_KEY_F16,
+  KC_F17 = HID_KEY_F17,
+  KC_F18 = HID_KEY_F18,
+  KC_F19 = HID_KEY_F19,
+  KC_F20 = HID_KEY_F20,
+  KC_F21 = HID_KEY_F21,
+  KC_F22 = HID_KEY_F22,
+  KC_F23 = HID_KEY_F23,
+  KC_F24 = HID_KEY_F24,
+  KC_EXEC = HID_KEY_EXECUTE,
+  KC_HELP = HID_KEY_HELP,
+  KC_MENU = HID_KEY_MENU,
+  KC_SLCT = HID_KEY_SELECT,
+  KC_STOP = HID_KEY_STOP,
+  KC_AGIN = HID_KEY_AGAIN,
+  KC_UNDO = HID_KEY_UNDO,
+  KC_CUT = HID_KEY_CUT,
+  KC_COPY = HID_KEY_COPY,
+  KC_PSTE = HID_KEY_PASTE,
+  KC_FIND = HID_KEY_FIND,
+  KC_KB_MUTE = HID_KEY_MUTE,
+  KC_KB_VOLUME_UP = HID_KEY_VOLUME_UP,
+  KC_KB_VOLUME_DOWN = HID_KEY_VOLUME_DOWN,
+  KC_LCAP = HID_KEY_LOCKING_CAPS_LOCK,
+  KC_LNUM = HID_KEY_LOCKING_NUM_LOCK,
+  KC_LSCR = HID_KEY_LOCKING_SCROLL_LOCK,
+  KC_PCMM = HID_KEY_KEYPAD_COMMA,
+  KC_KP_EQUAL_AS400 = HID_KEY_KEYPAD_EQUAL_SIGN,
+  KC_INT1 = HID_KEY_KANJI1,
+  KC_INT2 = HID_KEY_KANJI2,
+  KC_INT3 = HID_KEY_KANJI3,
+  KC_INT4 = HID_KEY_KANJI4,
+  KC_INT5 = HID_KEY_KANJI5,
+  KC_INT6 = HID_KEY_KANJI6,
+  KC_INT7 = HID_KEY_KANJI7,
+  KC_INT8 = HID_KEY_KANJI8,
+  KC_INT9 = HID_KEY_KANJI9,
+  KC_LNG1 = HID_KEY_LANG1,
+  KC_LNG2 = HID_KEY_LANG2,
+  KC_LNG3 = HID_KEY_LANG3,
+  KC_LNG4 = HID_KEY_LANG4,
+  KC_LNG5 = HID_KEY_LANG5,
+  KC_LNG6 = HID_KEY_LANG6,
+  KC_LNG7 = HID_KEY_LANG7,
+  KC_LNG8 = HID_KEY_LANG8,
+  KC_LNG9 = HID_KEY_LANG9,
+  KC_ERAS = HID_KEY_ALTERNATE_ERASE,
+  KC_SYRQ = HID_KEY_SYSREQ_ATTENTION,
+  KC_CNCL = HID_KEY_CANCEL,
+  KC_CLR = HID_KEY_CLEAR,
+  KC_PRIR = HID_KEY_PRIOR,
+  KC_RETN = HID_KEY_RETURN,
+  KC_SEPR = HID_KEY_SEPARATOR,
+  KC_OUT = HID_KEY_OUT,
+  KC_OPER = HID_KEY_OPER,
+  KC_CLAG = HID_KEY_CLEAR_AGAIN,
+  KC_CRSL = HID_KEY_CRSEL_PROPS,
+  KC_EXSL = HID_KEY_EXSEL,
+
+  // System control keycodes
+  KC_PWR = 0x00A5,
+  KC_WAKE = 0x00A6,
+  KC_SLEP = 0x00A7,
+
+  // Consumer control keycodes
+  KC_BRIU = 0x00A8,
+  KC_BRID = 0x00A9,
+  KC_MPLY = 0x00AA,
+  KC_MNXT = 0x00AB,
+  KC_MPRV = 0x00AC,
+  KC_MSTP = 0x00AD,
+  KC_MUTE = 0x00AE,
+  KC_VOLU = 0x00AF,
+  KC_VOLD = 0x00B0,
+  KC_MSEL = 0x00B1,
+  KC_MAIL = 0x00B2,
+  KC_CALC = 0x00B3,
+  KC_MYCM = 0x00B4,
+  KC_WSCH = 0x00B5,
+  KC_WHOM = 0x00B6,
+  KC_WBAK = 0x00B7,
+  KC_WFWD = 0x00B8,
+  KC_WSTP = 0x00B9,
+  KC_WREF = 0x00BA,
+  KC_WFAV = 0x00BB,
+
+  // Modifier keycodes
+  KC_LCTL = HID_KEY_CONTROL_LEFT,
+  KC_LSFT = HID_KEY_SHIFT_LEFT,
+  KC_LALT = HID_KEY_ALT_LEFT,
+  KC_LGUI = HID_KEY_GUI_LEFT,
+  KC_RCTL = HID_KEY_CONTROL_RIGHT,
+  KC_RSFT = HID_KEY_SHIFT_RIGHT,
+  KC_RALT = HID_KEY_ALT_RIGHT,
+  KC_RGUI = HID_KEY_GUI_RIGHT,
+};
+
+//--------------------------------------------------------------------+
+// Keycode Range Check Functions
+//--------------------------------------------------------------------+
+
+#define IS_KEYBOARD_KEY(keycode) (KC_A <= keycode && keycode <= KC_EXSL)
+#define IS_SYSTEM_CONTROL_KEY(keycode) (KC_PWR <= keycode && keycode <= KC_SLEP)
+#define IS_CONSUMER_CONTROL_KEY(keycode)                                       \
+  (KC_BRIU <= keycode && keycode <= KC_WFAV)
+#define IS_MODIFIER_KEY(keycode) (KC_LCTL <= keycode && keycode <= KC_RGUI)
+
+//--------------------------------------------------------------------+
+// Keycode Conversion Functions
+//
+// WARNING: These functions do not perform bounds checking. Make sure the
+// keycode is within the valid range before calling these functions.
+//--------------------------------------------------------------------+
+
+// Convert a keycode to a HID system control keycode
+uint16_t keycode_to_system_control(uint16_t keycode);
+// Convert a keycode to a HID consumer control keycode
+uint16_t keycode_to_consumer_control(uint16_t keycode);
+// Convert a keycode to a HID modifier flag
+uint8_t keycode_to_modifier(uint16_t keycode);
 
 #endif /* INC_KEYCODES_H_ */

@@ -10,7 +10,6 @@
 
 #include <stdint.h>
 
-#include "keycodes.h"
 #include "main.h"
 
 //--------------------------------------------------------------------+
@@ -37,6 +36,9 @@
 
 #define KEYBOARD_CONFIG_MAGIC 0xBEEFDEAD
 #define KEYBOARD_CONFIG_VERSION 0x0100
+
+// TinyUSB supports up to 6 keys per report
+#define KEY_ROLL_OVER 6
 
 // Calibration rounds
 #define CALIBRATION_ROUNDS 16
