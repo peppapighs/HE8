@@ -261,15 +261,11 @@ static void keyboard_task(void) {
     // If at least one key is pressed, we should wake up the host
     should_remote_wakeup |= key_switches[i].pressed;
 
-    // We must always update the keycodes buffer so we can avoid clearing the
-    // buffer every time we poll the key switches
-    current_keycodes_buffer[i] = key_switches[i].pressed ? keycode : KC_NO;
-
     if (key_switches[i].pressed) {
-      // We cannot process the keycode if the previous keycode is a one-time key
-      // and it is still pressed
-      if (IS_ONE_TIME_KEY(previous_keycodes_buffer[i]))
-        continue;
+      // Must release the previous key first if the current key is different
+      if (previous_keycodes_buffer[i] != KC_NO)
+        keycode = previous_keycodes_buffer[i];
+      current_keycodes_buffer[i] = keycode;
 
       if (IS_KEYBOARD_KEY(keycode)) {
         if (keyboard_keycodes_count >= KEY_ROLL_OVER)
@@ -298,14 +294,26 @@ static void keyboard_task(void) {
         keyboard_keycodes_count++;
 
       } else if (IS_LAYER_MOMENTARY(keycode)) {
+        // Prevent multiple reports of the same keycode
+        if (keycode == previous_keycodes_buffer[i])
+          continue;
+
         layer_num = MO_LAYER(keycode);
 
       } else if (IS_LAYER_DEFAULT(keycode)) {
+        // Prevent multiple reports of the same keycode
+        if (keycode == previous_keycodes_buffer[i])
+          continue;
+
         if (layer_num == default_layer_num)
           layer_num = DF_LAYER(keycode);
         default_layer_num = DF_LAYER(keycode);
 
       } else if (IS_LAYER_TOGGLE(keycode)) {
+        // Prevent multiple reports of the same keycode
+        if (keycode == previous_keycodes_buffer[i])
+          continue;
+
         layer_num = layer_num == TG_LAYER(keycode) ? default_layer_num
                                                    : TG_LAYER(keycode);
       } else if (IS_PROFILE_SET(keycode)) {
@@ -315,6 +323,10 @@ static void keyboard_task(void) {
         // TODO: Implement mouse and gamepad
       }
     } else {
+      // Clear the keycodes buffer if the key is released to avoid initializing
+      // the buffer every time we poll the key switches
+      current_keycodes_buffer[i] = KC_NO;
+
       // If the momentary layer is released, revert to the default layer
       if (IS_LAYER_MOMENTARY(keycode) && layer_num == MO_LAYER(keycode))
         layer_num = default_layer_num;

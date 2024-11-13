@@ -254,6 +254,7 @@ enum {
 // Keycode Range Check Functions
 //--------------------------------------------------------------------+
 
+// Basic key ranges
 #define IS_KEYBOARD_KEY(keycode) (KC_A <= (keycode) && (keycode) <= KC_EXSL)
 #define IS_SYSTEM_CONTROL_KEY(keycode)                                         \
   (KC_PWR <= (keycode) && (keycode) <= KC_SLEP)
@@ -261,9 +262,11 @@ enum {
   (KC_BRIU <= (keycode) && (keycode) <= KC_LPAD)
 #define IS_MODIFIER_KEY(keycode) (KC_LCTL <= (keycode) && (keycode) <= KC_RGUI)
 
+// Modifier mask ranges
 #define IS_MOD_MASK(keycode)                                                   \
   (MOD_MASK <= (keycode) && (keycode) <= MOD_MASK_MAX)
 
+// Layer ranges
 #define IS_LAYER_MOMENTARY(keycode)                                            \
   (LAYER_MOMENTARY <= (keycode) && (keycode) <= LAYER_MOMENTARY_MAX)
 #define IS_LAYER_DEFAULT(keycode)                                              \
@@ -271,14 +274,9 @@ enum {
 #define IS_LAYER_TOGGLE(keycode)                                               \
   (LAYER_TOGGLE <= (keycode) && (keycode) <= LAYER_TOGGLE_MAX)
 
+// Profile ranges
 #define IS_PROFILE_SET(keycode)                                                \
   (PROFILE_SET <= (keycode) && (keycode) <= PROFILE_SET_MAX)
-
-// One-time keycodes are keys that must be released first before the keycodes at
-// the same position can be processed again
-#define IS_ONE_TIME_KEY(key)                                                   \
-  (IS_LAYER_MOMENTARY(key) || IS_LAYER_DEFAULT(key) || IS_LAYER_TOGGLE(key) || \
-   IS_PROFILE_SET(key))
 
 //--------------------------------------------------------------------+
 // Modifier Mask Macros
