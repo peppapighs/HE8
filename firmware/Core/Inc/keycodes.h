@@ -207,6 +207,13 @@ enum {
   KC_WSTP = 0x00B9,
   KC_WREF = 0x00BA,
   KC_WFAV = 0x00BB,
+  KC_EJCT = 0x00BC,
+  KC_MFFD = 0x00BD,
+  KC_MRWD = 0x00BE,
+  KC_CPNL = 0x00BF,
+  KC_ASST = 0x00C0,
+  KC_MCTL = 0x00C1,
+  KC_LPAD = 0x00C2,
 
   // Modifier keycodes
   KC_LCTL = 0x00E0,
@@ -246,7 +253,7 @@ enum {
 #define IS_KEYBOARD_KEY(keycode) (KC_A <= keycode && keycode <= KC_EXSL)
 #define IS_SYSTEM_CONTROL_KEY(keycode) (KC_PWR <= keycode && keycode <= KC_SLEP)
 #define IS_CONSUMER_CONTROL_KEY(keycode)                                       \
-  (KC_BRIU <= keycode && keycode <= KC_WFAV)
+  (KC_BRIU <= keycode && keycode <= KC_LPAD)
 #define IS_MODIFIER_KEY(keycode) (KC_LCTL <= keycode && keycode <= KC_RGUI)
 
 #define IS_MOD_MASK(keycode) (MOD_MASK <= keycode && keycode <= MOD_MASK_MAX)

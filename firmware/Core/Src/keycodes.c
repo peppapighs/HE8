@@ -63,6 +63,20 @@ uint16_t keycode_to_consumer_control(uint16_t keycode) {
     return HID_USAGE_CONSUMER_AC_REFRESH;
   case KC_WFAV:
     return HID_USAGE_CONSUMER_AC_BOOKMARKS;
+  case KC_EJCT:
+    return 0x00CC;
+  case KC_MFFD:
+    return 0x00B3;
+  case KC_MRWD:
+    return 0x00B4;
+  case KC_CPNL:
+    return 0x019F;
+  case KC_ASST:
+    return 0x01CB;
+  case KC_MCTL:
+    return 0x029F;
+  case KC_LPAD:
+    return 0x02A0;
 
   default:
     return KC_NO;
