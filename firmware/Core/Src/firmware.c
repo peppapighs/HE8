@@ -269,14 +269,14 @@ static void keyboard_task(void) {
         layer_num = MO_LAYER(keycode);
       } else if (IS_LAYER_DEFAULT(keycode)) {
         // Prevent multiple default layer changes
-        if (keycode != previous_keycodes_buffer[i]) {
+        if (!IS_LAYER_DEFAULT(previous_keycodes_buffer[i])) {
           if (layer_num == default_layer_num)
             layer_num = DF_LAYER(keycode);
           default_layer_num = DF_LAYER(keycode);
         }
       } else if (IS_LAYER_TOGGLE(keycode)) {
         // Prevent multiple toggle layer changes
-        if (keycode != previous_keycodes_buffer[i])
+        if (!IS_LAYER_TOGGLE(previous_keycodes_buffer[i]))
           layer_num = layer_num == TG_LAYER(keycode) ? default_layer_num
                                                      : TG_LAYER(keycode);
       } else {

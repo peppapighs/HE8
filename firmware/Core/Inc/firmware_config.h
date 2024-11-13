@@ -55,7 +55,7 @@
 #define NUM_KEYS_PER_MUX (1 << NUM_MUX_SELECT_PINS)
 
 #define NUM_PROFILES 1
-#define NUM_LAYERS 2
+#define NUM_LAYERS 4
 
 // GPIO pins for MUX select
 static GPIO_TypeDef *const mux_select_ports[NUM_MUX_SELECT_PINS] = {
