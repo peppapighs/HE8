@@ -59,9 +59,10 @@ static keyboard_config_t keyboard_config = {
 
     .keymap = {{
         {KC_Z, KC_X, KC_C, KC_V, MO(1), DF(2), KC_VOLD, KC_VOLU},
-        {KC_A, KC_S, KC_D, KC_F, _______, _______, _______, _______},
+        {KC_EXLM, KC_AT, KC_HASH, KC_DLR, _______, _______, _______, _______},
         {KC_Q, KC_W, KC_E, KC_R, MO(3), DF(0), KC_MUTE, KC_WAKE},
-        {KC_H, KC_J, KC_K, KC_L, _______, _______, _______, _______},
+        {KC_PERC, KC_CIRC, KC_AMPR, KC_ASTR, _______, _______, _______,
+         _______},
     }}};
 
 #endif /* INC_KEYBOARD_CONFIG_H_ */

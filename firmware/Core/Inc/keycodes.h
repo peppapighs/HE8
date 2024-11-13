@@ -218,6 +218,14 @@ enum {
   KC_RALT = 0x00E6,
   KC_RGUI = 0x00E7,
 
+  // Modifier mask keycodes
+  MOD_MASK = 0x0100,
+  MOD_MASK_CTL = 0x0100,
+  MOD_MASK_SFT = 0x0200,
+  MOD_MASK_ALT = 0x0400,
+  MOD_MASK_GUI = 0x0800,
+  MOD_MASK_MAX = 0x1FFF,
+
   // Layer keycodes (support up to 16 layers)
   LAYER_MOMENTARY = 0x5200,
   LAYER_MOMENTARY_MAX = 0x520F,
@@ -241,12 +249,56 @@ enum {
   (KC_BRIU <= keycode && keycode <= KC_WFAV)
 #define IS_MODIFIER_KEY(keycode) (KC_LCTL <= keycode && keycode <= KC_RGUI)
 
+#define IS_MOD_MASK(keycode) (MOD_MASK <= keycode && keycode <= MOD_MASK_MAX)
+
 #define IS_LAYER_MOMENTARY(keycode)                                            \
   (LAYER_MOMENTARY <= keycode && keycode <= LAYER_MOMENTARY_MAX)
 #define IS_LAYER_DEFAULT(keycode)                                              \
   (LAYER_DEFAULT <= keycode && keycode <= LAYER_DEFAULT_MAX)
 #define IS_LAYER_TOGGLE(keycode)                                               \
   (LAYER_TOGGLE <= keycode && keycode <= LAYER_TOGGLE_MAX)
+
+//--------------------------------------------------------------------+
+// Modifier Mask Macros
+//--------------------------------------------------------------------+
+
+#define LCTL(keycode) ((keycode) | MOD_MASK_CTL)
+#define LSFT(keycode) ((keycode) | MOD_MASK_SFT)
+#define LALT(keycode) ((keycode) | MOD_MASK_ALT)
+#define LGUI(keycode) ((keycode) | MOD_MASK_GUI)
+#define RCTL(keycode) (LCTL(keycode) | 0x1000)
+#define RSFT(keycode) (LSFT(keycode) | 0x1000)
+#define RALT(keycode) (LALT(keycode) | 0x1000)
+#define RGUI(keycode) (LGUI(keycode) | 0x1000)
+
+#define MM_MODS(keycode)                                                       \
+  ((((keycode) & 0x0F00) >> 8) << (((keycode) & 0x1000) >> 10))
+#define MM_KEY(keycode) ((keycode) & 0x00FF)
+
+// Shifted keycodes
+enum {
+  KC_TILD = LSFT(KC_GRV),
+  KC_EXLM = LSFT(KC_1),
+  KC_AT = LSFT(KC_2),
+  KC_HASH = LSFT(KC_3),
+  KC_DLR = LSFT(KC_4),
+  KC_PERC = LSFT(KC_5),
+  KC_CIRC = LSFT(KC_6),
+  KC_AMPR = LSFT(KC_7),
+  KC_ASTR = LSFT(KC_8),
+  KC_LPRN = LSFT(KC_9),
+  KC_RPRN = LSFT(KC_0),
+  KC_UNDS = LSFT(KC_MINS),
+  KC_PLUS = LSFT(KC_EQL),
+  KC_LCBR = LSFT(KC_LBRC),
+  KC_RCBR = LSFT(KC_RBRC),
+  KC_PIPE = LSFT(KC_BSLS),
+  KC_COLN = LSFT(KC_SCLN),
+  KC_DQUO = LSFT(KC_QUOT),
+  KC_LABK = LSFT(KC_COMM),
+  KC_RABK = LSFT(KC_DOT),
+  KC_QUES = LSFT(KC_SLSH),
+};
 
 //--------------------------------------------------------------------+
 // Layer Macros

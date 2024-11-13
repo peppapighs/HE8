@@ -50,9 +50,11 @@ static uint8_t default_layer_num;
 // HID Related Data
 //--------------------------------------------------------------------+
 
+static bool should_remote_wakeup;
+
 // Keyboard keycodes
 static uint8_t keyboard_keycodes_count;
-static uint8_t keyboard_keycodes[REPORT_ID_COUNT];
+static uint8_t keyboard_keycodes[KEY_ROLL_OVER];
 static uint8_t keycodes_modifier;
 
 // Keycodes buffer for checking one shot keys
@@ -82,7 +84,7 @@ static void keyboard_state_init(void);
 static void hid_data_init(void);
 // Poll keyboard switches
 static void keyboard_task(void);
-// Send HID report. Return true if the report is sent
+// Send HID report. Return `true` if the report is sent
 static bool send_hid_report(uint8_t report_id);
 // Calibrate key switch during calibration rounds
 static void calibrate_key_switch(uint8_t key_index, uint16_t adc_value);
@@ -108,10 +110,13 @@ void firmware_init(void) {
 
 void firmware_loop(void) {
   tud_task();
-
   keyboard_task();
-  if (tud_hid_ready())
-    // Start the HID report chain
+
+  if (tud_suspended() && should_remote_wakeup)
+    // If we are in suspend mode, wake up the host
+    tud_remote_wakeup();
+  else if (tud_hid_ready())
+    // Otherwise, start the HID report chain
     send_hid_report(REPORT_ID_KEYBOARD);
 }
 
@@ -203,16 +208,14 @@ static void keyboard_state_init(void) {
 }
 
 static void hid_data_init(void) {
+  should_remote_wakeup = false;
+
   keyboard_keycodes_count = 0;
+  memset(keyboard_keycodes, KC_NO, KEY_ROLL_OVER);
   keycodes_modifier = 0;
-  for (uint8_t i = 0; i < KEY_ROLL_OVER; i++)
-    keyboard_keycodes[i] = KC_NO;
 
   keycodes_buffer_idx = 0;
-  for (uint8_t i = 0; i < NUM_KEYS; i++) {
-    keycodes_buffer[0][i] = KC_NO;
-    keycodes_buffer[1][i] = KC_NO;
-  }
+  memset(keycodes_buffer[0], KC_NO, 2 * NUM_KEYS);
 
   system_control_keycode = KC_NO;
   last_system_control_keycode = KC_NO;
@@ -224,9 +227,10 @@ static void hid_data_init(void) {
 }
 
 void clear_hid_data(void) {
+  should_remote_wakeup = false;
+
   keyboard_keycodes_count = 0;
-  for (uint8_t i = 0; i < KEY_ROLL_OVER; i++)
-    keyboard_keycodes[i] = KC_NO;
+  memset(keyboard_keycodes, KC_NO, KEY_ROLL_OVER);
   keycodes_modifier = 0;
 
   system_control_keycode = KC_NO;
@@ -249,43 +253,65 @@ static void keyboard_task(void) {
     if (keycode == KC_TRNS)
       keycode = keyboard_config.keymap[keymap_profile][default_layer_num][i];
 
-    if (key_switches[i].pressed) {
-      // Set the key to the current keycodes buffer
-      current_keycodes_buffer[i] = keycode;
+    // If at least one key is pressed, we should wake up the host
+    should_remote_wakeup |= key_switches[i].pressed;
 
+    // We must always update the keycodes buffer so we can avoid clearing the
+    // buffer every time we poll the key switches
+    current_keycodes_buffer[i] = key_switches[i].pressed ? keycode : KC_NO;
+
+    if (key_switches[i].pressed) {
       if (IS_KEYBOARD_KEY(keycode)) {
         if (keyboard_keycodes_count >= KEY_ROLL_OVER)
           continue;
 
         keyboard_keycodes[keyboard_keycodes_count] = keycode;
         keyboard_keycodes_count++;
+
       } else if (IS_MODIFIER_KEY(keycode)) {
         keycodes_modifier |= keycode_to_modifier(keycode);
+
       } else if (IS_SYSTEM_CONTROL_KEY(keycode)) {
         system_control_keycode = keycode_to_system_control(keycode);
+
       } else if (IS_CONSUMER_CONTROL_KEY(keycode)) {
         consumer_control_keycode = keycode_to_consumer_control(keycode);
+
+      } else if (IS_MOD_MASK(keycode)) {
+        // Check the number of keycodes first so that we don't override the
+        // modifier unless there is a buffer space for the keycode
+        if (keyboard_keycodes_count >= KEY_ROLL_OVER)
+          continue;
+
+        keycodes_modifier |= MM_MODS(keycode);
+        keyboard_keycodes[keyboard_keycodes_count] = MM_KEY(keycode);
+        keyboard_keycodes_count++;
+
       } else if (IS_LAYER_MOMENTARY(keycode)) {
         layer_num = MO_LAYER(keycode);
+
       } else if (IS_LAYER_DEFAULT(keycode)) {
         // Prevent multiple default layer changes
-        if (!IS_LAYER_DEFAULT(previous_keycodes_buffer[i])) {
-          if (layer_num == default_layer_num)
-            layer_num = DF_LAYER(keycode);
-          default_layer_num = DF_LAYER(keycode);
-        }
+        if (IS_LAYER_DEFAULT(previous_keycodes_buffer[i]))
+          continue;
+
+        if (layer_num == default_layer_num)
+          layer_num = DF_LAYER(keycode);
+        default_layer_num = DF_LAYER(keycode);
+
       } else if (IS_LAYER_TOGGLE(keycode)) {
         // Prevent multiple toggle layer changes
-        if (!IS_LAYER_TOGGLE(previous_keycodes_buffer[i]))
-          layer_num = layer_num == TG_LAYER(keycode) ? default_layer_num
-                                                     : TG_LAYER(keycode);
+        if (IS_LAYER_TOGGLE(previous_keycodes_buffer[i]))
+          continue;
+
+        layer_num = layer_num == TG_LAYER(keycode) ? default_layer_num
+                                                   : TG_LAYER(keycode);
+
       } else {
         // TODO: Implement mouse and gamepad
       }
     } else {
-      // Clear the key from the current keycodes buffer
-      current_keycodes_buffer[i] = KC_NO;
-
+      // If the momentary layer is released, revert to the default layer
       if (IS_LAYER_MOMENTARY(keycode) && layer_num == MO_LAYER(keycode))
         layer_num = default_layer_num;
     }
