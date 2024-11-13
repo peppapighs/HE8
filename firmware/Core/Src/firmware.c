@@ -98,7 +98,8 @@ static void process_key(uint8_t key_index, uint16_t adc_value);
 //--------------------------------------------------------------------+
 
 void firmware_init(void) {
-  load_keyboard_config();
+  // TODO: Uncomment the following line after implementing EEPROM functions
+  // load_keyboard_config();
 
   key_switch_state_init();
   keyboard_state_init();
@@ -245,7 +246,7 @@ void clear_hid_data(void) {
 }
 
 static void keyboard_task(void) {
-  uint8_t const keymap_profile = keyboard_config.keymap_profile;
+  uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
   uint16_t *current_keycodes_buffer = keycodes_buffer[keycodes_buffer_idx];
   uint16_t *previous_keycodes_buffer = keycodes_buffer[keycodes_buffer_idx ^ 1];
 
@@ -253,9 +254,9 @@ static void keyboard_task(void) {
   clear_hid_data();
 
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
-    uint16_t keycode = keyboard_config.keymap[keymap_profile][layer_num][i];
+    uint16_t keycode = keyboard_config.keymap[keyboard_profile][layer_num][i];
     if (keycode == KC_TRNS)
-      keycode = keyboard_config.keymap[keymap_profile][default_layer_num][i];
+      keycode = keyboard_config.keymap[keyboard_profile][default_layer_num][i];
 
     // If at least one key is pressed, we should wake up the host
     should_remote_wakeup |= key_switches[i].pressed;
@@ -308,7 +309,7 @@ static void keyboard_task(void) {
         layer_num = layer_num == TG_LAYER(keycode) ? default_layer_num
                                                    : TG_LAYER(keycode);
       } else if (IS_PROFILE_SET(keycode)) {
-        set_keymap_profile(PS_PROFILE(keycode));
+        set_keyboard_profile(PS_PROFILE(keycode));
 
       } else {
         // TODO: Implement mouse and gamepad
@@ -405,8 +406,10 @@ uint16_t adc_value_to_distance(uint8_t key_index) {
 }
 
 void process_actuation(uint8_t key_index) {
+  uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
   uint16_t const actuation_distance =
-      keyboard_config.key_switch_config[key_index].actuation.actuation_distance;
+      keyboard_config.key_switch_config[keyboard_profile][key_index]
+          .actuation.actuation_distance;
 
   key_state_t *key = &key_switches[key_index];
 
@@ -414,15 +417,19 @@ void process_actuation(uint8_t key_index) {
 }
 
 void process_rapid_trigger(uint8_t key_index) {
+  uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
   uint16_t const actuation_distance =
-      keyboard_config.key_switch_config[key_index]
+      keyboard_config.key_switch_config[keyboard_profile][key_index]
           .rapid_trigger.actuation_distance;
   uint16_t const reset_distance =
-      keyboard_config.key_switch_config[key_index].rapid_trigger.reset_distance;
-  uint16_t const rt_down_distance = keyboard_config.key_switch_config[key_index]
-                                        .rapid_trigger.rt_down_distance;
+      keyboard_config.key_switch_config[keyboard_profile][key_index]
+          .rapid_trigger.reset_distance;
+  uint16_t const rt_down_distance =
+      keyboard_config.key_switch_config[keyboard_profile][key_index]
+          .rapid_trigger.rt_down_distance;
   uint16_t const rt_up_distance =
-      keyboard_config.key_switch_config[key_index].rapid_trigger.rt_up_distance;
+      keyboard_config.key_switch_config[keyboard_profile][key_index]
+          .rapid_trigger.rt_up_distance;
 
   key_state_t *key = &key_switches[key_index];
 
@@ -476,6 +483,8 @@ void process_rapid_trigger(uint8_t key_index) {
 }
 
 static void process_key(uint8_t key_index, uint16_t adc_value) {
+  uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
+
   key_state_t *key = &key_switches[key_index];
 
   // Exponential smoothing
@@ -488,7 +497,7 @@ static void process_key(uint8_t key_index, uint16_t adc_value) {
     key->min_value = key->adc_value;
 
   key->distance = adc_value_to_distance(key_index);
-  switch (keyboard_config.key_switch_config[key_index].mode) {
+  switch (keyboard_config.key_switch_config[keyboard_profile][key_index].mode) {
   case KEY_MODE_ACTUATION:
     process_actuation(key_index);
     break;

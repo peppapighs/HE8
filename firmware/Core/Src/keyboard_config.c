@@ -15,46 +15,15 @@ keyboard_config_t keyboard_config = {
     .version = KEYBOARD_CONFIG_VERSION,
 
     .switch_profile = SWITCH_PROF_GEON_RAW_HE,
-    .keymap_profile = 0,
+    .keyboard_profile = 0,
 
     .key_switch_config =
-        {{.mode = KEY_MODE_RAPID_TRIGGER,
-          .rapid_trigger =
-              {
-                  .actuation_distance = 200,
-                  .reset_distance = 10,
-                  .rt_down_distance = 10,
-                  .rt_up_distance = 10,
-              }},
-         {.mode = KEY_MODE_RAPID_TRIGGER,
-          .rapid_trigger =
-              {
-                  .actuation_distance = 200,
-                  .reset_distance = 10,
-                  .rt_down_distance = 10,
-                  .rt_up_distance = 10,
-              }},
-         {.mode = KEY_MODE_RAPID_TRIGGER,
-          .rapid_trigger =
-              {
-                  .actuation_distance = 20,
-                  .reset_distance = 20,
-                  .rt_down_distance = 10,
-                  .rt_up_distance = 10,
-              }},
-         {.mode = KEY_MODE_RAPID_TRIGGER,
-          .rapid_trigger =
-              {
-                  .actuation_distance = 20,
-                  .reset_distance = 20,
-                  .rt_down_distance = 10,
-                  .rt_up_distance = 10,
-              }},
-         {.mode = KEY_MODE_ACTUATION, .actuation = {.actuation_distance = 200}},
-         {.mode = KEY_MODE_ACTUATION, .actuation = {.actuation_distance = 200}},
-         {.mode = KEY_MODE_ACTUATION, .actuation = {.actuation_distance = 200}},
-         {.mode = KEY_MODE_ACTUATION,
-          .actuation = {.actuation_distance = 200}}},
+        {{CONFIG_RT(200, 10, 10, 10), CONFIG_RT(200, 10, 10, 10),
+          CONFIG_RT(20, 20, 10, 10), CONFIG_RT(20, 20, 10, 10), CONFIG_ACT(200),
+          CONFIG_ACT(200), CONFIG_ACT(200), CONFIG_ACT(200)},
+         {CONFIG_RT(200, 10, 10, 10), CONFIG_RT(200, 10, 10, 10),
+          CONFIG_RT(20, 20, 10, 10), CONFIG_RT(20, 20, 10, 10), CONFIG_ACT(200),
+          CONFIG_ACT(200), CONFIG_ACT(200), CONFIG_ACT(200)}},
 
     .keymap = {
         {

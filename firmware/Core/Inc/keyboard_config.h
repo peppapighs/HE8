@@ -16,4 +16,25 @@
 
 extern keyboard_config_t keyboard_config;
 
+//--------------------------------------------------------------------+
+// Switch Configuration Macros
+//--------------------------------------------------------------------+
+
+#define CONFIG_ACT(act)                                                        \
+  {                                                                            \
+    .mode = KEY_MODE_ACTUATION, .actuation = {                                 \
+      .actuation_distance = (act),                                             \
+    }                                                                          \
+  }
+
+#define CONFIG_RT(act, rst, rt_down, rt_up)                                    \
+  {                                                                            \
+    .mode = KEY_MODE_RAPID_TRIGGER, .rapid_trigger = {                         \
+      .actuation_distance = (act),                                             \
+      .reset_distance = (rst),                                                 \
+      .rt_down_distance = (rt_down),                                           \
+      .rt_up_distance = (rt_up),                                               \
+    }                                                                          \
+  }
+
 #endif /* INC_KEYBOARD_CONFIG_H_ */

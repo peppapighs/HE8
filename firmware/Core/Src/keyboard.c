@@ -13,6 +13,17 @@
 #include "main.h"
 
 //--------------------------------------------------------------------+
+// Keyboard Configuration
+//--------------------------------------------------------------------+
+
+switch_profile_t const switch_profiles[SWITCH_PROF_COUNT] = {
+    [SWITCH_PROF_GEON_RAW_HE] = {.travel_distance = 340, .adc_offset = 700},
+    [SWITCH_PROF_GATERON_MAGNETIC_JADE] = {.travel_distance = 350,
+                                           .adc_offset = 700},
+    [SWITCH_PROF_WOOTING_LEKKER] = {.travel_distance = 400, .adc_offset = 700},
+    [SWITCH_PROF_GATERON_KS_20] = {.travel_distance = 410, .adc_offset = 700}};
+
+//--------------------------------------------------------------------+
 // Prototypes
 //--------------------------------------------------------------------+
 
@@ -45,17 +56,30 @@ void load_keyboard_config(void) {
   }
 }
 
-void set_keymap_profile(uint8_t profile) {
+void set_switch_profile(uint8_t profile) {
+  // Check if the profile is valid
+  if (profile >= SWITCH_PROF_COUNT)
+    return;
+
+  keyboard_config.switch_profile = profile;
+
+  // Save the new switch profile
+  eeprom_write(offsetof(keyboard_config_t, switch_profile),
+               (uint8_t *)&keyboard_config.switch_profile,
+               sizeof(keyboard_config.switch_profile));
+}
+
+void set_keyboard_profile(uint8_t profile) {
   // Check if the profile is valid
   if (profile >= NUM_PROFILES)
     return;
 
-  keyboard_config.keymap_profile = profile;
+  keyboard_config.keyboard_profile = profile;
 
   // Save the new keymap profile
-  eeprom_write(offsetof(keyboard_config_t, keymap_profile),
-               (uint8_t *)&keyboard_config.keymap_profile,
-               sizeof(keyboard_config.keymap_profile));
+  eeprom_write(offsetof(keyboard_config_t, keyboard_profile),
+               (uint8_t *)&keyboard_config.keyboard_profile,
+               sizeof(keyboard_config.keyboard_profile));
 }
 
 //--------------------------------------------------------------------+
