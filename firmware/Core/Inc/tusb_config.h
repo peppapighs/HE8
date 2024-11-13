@@ -8,8 +8,6 @@
 #ifndef INC_TUSB_CONFIG_H_
 #define INC_TUSB_CONFIG_H_
 
-#include "firmware_config.h"
-
 //--------------------------------------------------------------------+
 // Board Specific Configuration
 //--------------------------------------------------------------------+

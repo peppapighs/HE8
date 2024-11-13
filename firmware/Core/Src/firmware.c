@@ -10,6 +10,8 @@
 #include "tusb.h"
 
 #include "keyboard_config.h"
+#include "keycodes.h"
+#include "main.h"
 #include "usb_descriptors.h"
 
 //--------------------------------------------------------------------+
@@ -57,7 +59,7 @@ static uint8_t keyboard_keycodes_count;
 static uint8_t keyboard_keycodes[KEY_ROLL_OVER];
 static uint8_t keycodes_modifier;
 
-// Keycodes buffer for checking one shot keys
+// Keycodes swap buffer
 static uint8_t keycodes_buffer_idx;
 static uint16_t keycodes_buffer[2][NUM_KEYS];
 
@@ -96,6 +98,8 @@ static void process_key(uint8_t key_index, uint16_t adc_value);
 //--------------------------------------------------------------------+
 
 void firmware_init(void) {
+  load_keyboard_config();
+
   key_switch_state_init();
   keyboard_state_init();
   hid_data_init();
@@ -261,6 +265,11 @@ static void keyboard_task(void) {
     current_keycodes_buffer[i] = key_switches[i].pressed ? keycode : KC_NO;
 
     if (key_switches[i].pressed) {
+      // We cannot process the keycode if the previous keycode is a one-time key
+      // and it is still pressed
+      if (IS_ONE_TIME_KEY(previous_keycodes_buffer[i]))
+        continue;
+
       if (IS_KEYBOARD_KEY(keycode)) {
         if (keyboard_keycodes_count >= KEY_ROLL_OVER)
           continue;
@@ -291,21 +300,15 @@ static void keyboard_task(void) {
         layer_num = MO_LAYER(keycode);
 
       } else if (IS_LAYER_DEFAULT(keycode)) {
-        // Prevent multiple default layer changes
-        if (IS_LAYER_DEFAULT(previous_keycodes_buffer[i]))
-          continue;
-
         if (layer_num == default_layer_num)
           layer_num = DF_LAYER(keycode);
         default_layer_num = DF_LAYER(keycode);
 
       } else if (IS_LAYER_TOGGLE(keycode)) {
-        // Prevent multiple toggle layer changes
-        if (IS_LAYER_TOGGLE(previous_keycodes_buffer[i]))
-          continue;
-
         layer_num = layer_num == TG_LAYER(keycode) ? default_layer_num
                                                    : TG_LAYER(keycode);
+      } else if (IS_PROFILE_SET(keycode)) {
+        set_keymap_profile(PS_PROFILE(keycode));
 
       } else {
         // TODO: Implement mouse and gamepad

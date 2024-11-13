@@ -10,6 +10,10 @@
 
 #include "firmware_config.h"
 
+//--------------------------------------------------------------------+
+// Keyboard Configuration
+//--------------------------------------------------------------------+
+
 enum {
   SWITCH_PROF_GEON_RAW_HE,
   SWITCH_PROF_GATERON_MAGNETIC_JADE,
@@ -72,5 +76,16 @@ typedef struct {
   // Keymap
   uint16_t keymap[NUM_PROFILES][NUM_LAYERS][NUM_KEYS];
 } __attribute__((packed)) keyboard_config_t;
+
+//--------------------------------------------------------------------+
+// Configuration Functions
+//--------------------------------------------------------------------+
+
+// Load keyboard configuration from flash/EEPROM
+// If the configuration is invalid, load default configuration and save it
+// If the configuration version is outdated, migrate it
+void load_keyboard_config(void);
+// Set keymap profile
+void set_keymap_profile(uint8_t profile);
 
 #endif /* INC_KEYBOARD_H_ */

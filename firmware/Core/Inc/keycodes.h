@@ -8,7 +8,7 @@
 #ifndef INC_KEYCODES_H_
 #define INC_KEYCODES_H_
 
-#include "tusb.h"
+#include <stdint.h>
 
 //--------------------------------------------------------------------+
 // Keycode Definitions
@@ -241,6 +241,10 @@ enum {
   LAYER_TOGGLE = 0x5220,
   LAYER_TOGGLE_MAX = 0x522F,
 
+  // Profile keycodes (support up to 16 profiles)
+  PROFILE_SET = 0x5300,
+  PROFILE_SET_MAX = 0x530F,
+
   // Aliases
   XXXXXXX = KC_NO,
   _______ = KC_TRNS,
@@ -250,20 +254,31 @@ enum {
 // Keycode Range Check Functions
 //--------------------------------------------------------------------+
 
-#define IS_KEYBOARD_KEY(keycode) (KC_A <= keycode && keycode <= KC_EXSL)
-#define IS_SYSTEM_CONTROL_KEY(keycode) (KC_PWR <= keycode && keycode <= KC_SLEP)
+#define IS_KEYBOARD_KEY(keycode) (KC_A <= (keycode) && (keycode) <= KC_EXSL)
+#define IS_SYSTEM_CONTROL_KEY(keycode)                                         \
+  (KC_PWR <= (keycode) && (keycode) <= KC_SLEP)
 #define IS_CONSUMER_CONTROL_KEY(keycode)                                       \
-  (KC_BRIU <= keycode && keycode <= KC_LPAD)
-#define IS_MODIFIER_KEY(keycode) (KC_LCTL <= keycode && keycode <= KC_RGUI)
+  (KC_BRIU <= (keycode) && (keycode) <= KC_LPAD)
+#define IS_MODIFIER_KEY(keycode) (KC_LCTL <= (keycode) && (keycode) <= KC_RGUI)
 
-#define IS_MOD_MASK(keycode) (MOD_MASK <= keycode && keycode <= MOD_MASK_MAX)
+#define IS_MOD_MASK(keycode)                                                   \
+  (MOD_MASK <= (keycode) && (keycode) <= MOD_MASK_MAX)
 
 #define IS_LAYER_MOMENTARY(keycode)                                            \
-  (LAYER_MOMENTARY <= keycode && keycode <= LAYER_MOMENTARY_MAX)
+  (LAYER_MOMENTARY <= (keycode) && (keycode) <= LAYER_MOMENTARY_MAX)
 #define IS_LAYER_DEFAULT(keycode)                                              \
-  (LAYER_DEFAULT <= keycode && keycode <= LAYER_DEFAULT_MAX)
+  (LAYER_DEFAULT <= (keycode) && (keycode) <= LAYER_DEFAULT_MAX)
 #define IS_LAYER_TOGGLE(keycode)                                               \
-  (LAYER_TOGGLE <= keycode && keycode <= LAYER_TOGGLE_MAX)
+  (LAYER_TOGGLE <= (keycode) && (keycode) <= LAYER_TOGGLE_MAX)
+
+#define IS_PROFILE_SET(keycode)                                                \
+  (PROFILE_SET <= (keycode) && (keycode) <= PROFILE_SET_MAX)
+
+// One-time keycodes are keys that must be released first before the keycodes at
+// the same position can be processed again
+#define IS_ONE_TIME_KEY(key)                                                   \
+  (IS_LAYER_MOMENTARY(key) || IS_LAYER_DEFAULT(key) || IS_LAYER_TOGGLE(key) || \
+   IS_PROFILE_SET(key))
 
 //--------------------------------------------------------------------+
 // Modifier Mask Macros
@@ -319,6 +334,13 @@ enum {
 
 #define TG(layer) (LAYER_TOGGLE | (layer))
 #define TG_LAYER(keycode) ((keycode) & 0x000F)
+
+//--------------------------------------------------------------------+
+// Profile Macros
+//--------------------------------------------------------------------+
+
+#define PS(profile) (PROFILE_SET | (profile))
+#define PS_PROFILE(keycode) ((keycode) & 0x000F)
 
 //--------------------------------------------------------------------+
 // Keycode Conversion Functions

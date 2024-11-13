@@ -5,9 +5,9 @@
  *      Author: Pep
  */
 
-#include "stm32f4xx_hal.h"
 #include "tusb.h"
 
+#include "firmware_config.h"
 #include "usb_descriptors.h"
 
 const tusb_desc_webusb_url_t desc_url = {

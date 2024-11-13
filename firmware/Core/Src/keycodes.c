@@ -7,6 +7,8 @@
 
 #include "keycodes.h"
 
+#include "tusb.h"
+
 uint16_t keycode_to_system_control(uint16_t keycode) {
   switch (keycode) {
   case KC_PWR:
