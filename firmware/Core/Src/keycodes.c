@@ -9,6 +9,10 @@
 
 #include "tusb.h"
 
+//--------------------------------------------------------------------+
+// Implementation
+//--------------------------------------------------------------------+
+
 uint16_t keycode_to_system_control(uint16_t keycode) {
   switch (keycode) {
   case KC_PWR:
@@ -86,5 +90,5 @@ uint16_t keycode_to_consumer_control(uint16_t keycode) {
 }
 
 uint8_t keycode_to_modifier(uint16_t keycode) {
-  return 1 << (keycode - KC_LCTL);
+  return 1 << (keycode & 0x000F);
 }

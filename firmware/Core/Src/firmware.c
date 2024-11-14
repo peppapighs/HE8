@@ -9,6 +9,7 @@
 
 #include "tusb.h"
 
+#include "debug.h"
 #include "keyboard_config.h"
 #include "keycodes.h"
 #include "main.h"
@@ -29,13 +30,22 @@ typedef struct {
   uint16_t min_value;
   uint16_t max_value;
 
-  // Current state
+  // Distance data
   uint16_t adc_value;
   uint16_t distance;
   uint16_t peek_distance;
+
+  // Timestamp
+  uint32_t last_press_time;
+
+  // Current state
   uint8_t state;
   bool pressed;
-} __attribute__((packed)) key_state_t;
+
+  // Set to `true` if the key must be sent in the next HID report
+  // Used to handle tap-hold keys
+  bool reserved;
+} key_state_t;
 
 static uint8_t calibration_round;
 static uint8_t current_mux_index;
@@ -45,14 +55,17 @@ static key_state_t key_switches[NUM_KEYS];
 // Keyboard State
 //--------------------------------------------------------------------+
 
-static uint8_t layer_num;
+static uint16_t layer_mask;
 static uint8_t default_layer_num;
 
 //--------------------------------------------------------------------+
 // HID Related Data
 //--------------------------------------------------------------------+
 
+// If we should send a remote wakeup to the host
 static bool should_remote_wakeup;
+// If we should send and clear the reserved keycodes
+static bool should_clear_reserved_keycodes;
 
 // Keyboard keycodes
 static uint8_t keyboard_keycodes_count;
@@ -98,6 +111,10 @@ static void process_key(uint8_t key_index, uint16_t adc_value);
 //--------------------------------------------------------------------+
 
 void firmware_init(void) {
+#ifdef DEBUG
+  debug_init();
+#endif
+
   // TODO: Uncomment the following line after implementing EEPROM functions
   // load_keyboard_config();
 
@@ -114,6 +131,10 @@ void firmware_init(void) {
 }
 
 void firmware_loop(void) {
+#ifdef DEBUG
+  debug_counter_start();
+#endif
+
   tud_task();
   keyboard_task();
 
@@ -123,6 +144,10 @@ void firmware_loop(void) {
   else if (tud_hid_ready())
     // Otherwise, start the HID report chain
     send_hid_report(REPORT_ID_KEYBOARD);
+
+#ifdef DEBUG
+  debug_info.firmware_loop_latency = debug_counter_stop();
+#endif
 }
 
 //--------------------------------------------------------------------+
@@ -200,20 +225,23 @@ static void key_switch_state_init(void) {
     key_switches[i].min_value = ADC_MAX_VALUE;
     key_switches[i].max_value = 0;
     key_switches[i].adc_value = 0;
-    key_switches[i].state = KEY_SWITCH_REST;
     key_switches[i].distance = 0;
     key_switches[i].peek_distance = 0;
+    key_switches[i].last_press_time = 0;
+    key_switches[i].state = KEY_SWITCH_REST;
     key_switches[i].pressed = false;
+    key_switches[i].reserved = false;
   }
 }
 
 static void keyboard_state_init(void) {
-  layer_num = 0;
+  layer_mask = 0;
   default_layer_num = 0;
 }
 
 static void hid_data_init(void) {
   should_remote_wakeup = false;
+  should_clear_reserved_keycodes = false;
 
   keyboard_keycodes_count = 0;
   memset(keyboard_keycodes, KC_NO, KEY_ROLL_OVER);
@@ -245,6 +273,73 @@ void clear_hid_data(void) {
   gamepad_report = (hid_gamepad_report_t){0};
 }
 
+uint8_t current_layer(void) {
+  for (uint8_t i = NUM_LAYERS; i > 0; i--) {
+    if (layer_mask & (1 << (i - 1)))
+      return i - 1;
+  }
+
+  return default_layer_num;
+}
+
+void layer_on(uint8_t layer) { layer_mask |= 1 << layer; }
+
+void layer_off(uint8_t layer) { layer_mask &= ~(1 << layer); }
+
+void layer_toggle(uint8_t layer) { layer_mask ^= 1 << layer; }
+
+uint16_t get_keycode(uint8_t key_index) {
+  uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
+
+  // Find highest active layer without transparent key
+  for (uint8_t i = NUM_LAYERS; i > 0; i--) {
+    if ((layer_mask & (1 << (i - 1))) &&
+        keyboard_config.keymap[keyboard_profile][i - 1][key_index] != KC_TRNS)
+      return keyboard_config.keymap[keyboard_profile][i - 1][key_index];
+  }
+
+  return keyboard_config.keymap[keyboard_profile][default_layer_num][key_index];
+}
+
+void process_basic_keycode(uint16_t keycode, bool reserved) {
+  if (IS_KEYBOARD_KEY(keycode)) {
+    if (!reserved) {
+      if (keyboard_keycodes_count >= KEY_ROLL_OVER)
+        return;
+
+      keyboard_keycodes[keyboard_keycodes_count] = keycode;
+      keyboard_keycodes_count++;
+    } else {
+      // Check if the key is already in the buffer
+      for (uint8_t i = 0; i < NUM_KEYS; i++) {
+        if (keycodes_buffer[keycodes_buffer_idx][i] == keycode)
+          return;
+      }
+
+      // Otherwise, if the key is reserved, we insert it to the front of the
+      // buffer regardless if it is full
+      for (uint8_t i = KEY_ROLL_OVER - 1; i > 0; i--)
+        keyboard_keycodes[i] = keyboard_keycodes[i - 1];
+      keyboard_keycodes[0] = keycode;
+
+      if (keyboard_keycodes_count < KEY_ROLL_OVER)
+        keyboard_keycodes_count++;
+    }
+
+  } else if (IS_MODIFIER_KEY(keycode)) {
+    // We handle reserved keycodes identically to basic keycodes
+    keycodes_modifier |= keycode_to_modifier(keycode);
+
+  } else if (IS_SYSTEM_CONTROL_KEY(keycode)) {
+    // We handle reserved keycodes identically to basic keycodes
+    system_control_keycode = keycode_to_system_control(keycode);
+
+  } else if (IS_CONSUMER_CONTROL_KEY(keycode)) {
+    // We handle reserved keycodes identically to basic keycodes
+    consumer_control_keycode = keycode_to_consumer_control(keycode);
+  }
+}
+
 static void keyboard_task(void) {
   uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
   uint16_t *current_keycodes_buffer = keycodes_buffer[keycodes_buffer_idx];
@@ -254,9 +349,7 @@ static void keyboard_task(void) {
   clear_hid_data();
 
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
-    uint16_t keycode = keyboard_config.keymap[keyboard_profile][layer_num][i];
-    if (keycode == KC_TRNS)
-      keycode = keyboard_config.keymap[keyboard_profile][default_layer_num][i];
+    uint16_t keycode = get_keycode(i);
 
     // If at least one key is pressed, we should wake up the host
     should_remote_wakeup |= key_switches[i].pressed;
@@ -267,21 +360,8 @@ static void keyboard_task(void) {
         keycode = previous_keycodes_buffer[i];
       current_keycodes_buffer[i] = keycode;
 
-      if (IS_KEYBOARD_KEY(keycode)) {
-        if (keyboard_keycodes_count >= KEY_ROLL_OVER)
-          continue;
-
-        keyboard_keycodes[keyboard_keycodes_count] = keycode;
-        keyboard_keycodes_count++;
-
-      } else if (IS_MODIFIER_KEY(keycode)) {
-        keycodes_modifier |= keycode_to_modifier(keycode);
-
-      } else if (IS_SYSTEM_CONTROL_KEY(keycode)) {
-        system_control_keycode = keycode_to_system_control(keycode);
-
-      } else if (IS_CONSUMER_CONTROL_KEY(keycode)) {
-        consumer_control_keycode = keycode_to_consumer_control(keycode);
+      if (IS_BASIC_KEY(keycode)) {
+        process_basic_keycode(keycode, false);
 
       } else if (IS_MOD_MASK(keycode)) {
         // Check the number of keycodes first so that we don't override the
@@ -293,20 +373,28 @@ static void keyboard_task(void) {
         keyboard_keycodes[keyboard_keycodes_count] = MM_KEY(keycode);
         keyboard_keycodes_count++;
 
-      } else if (IS_LAYER_MOMENTARY(keycode)) {
-        // Prevent multiple reports of the same keycode
-        if (keycode == previous_keycodes_buffer[i])
-          continue;
+      } else if (IS_MOD_TAP(keycode)) {
+        uint16_t const tapping_term =
+            keyboard_config.key_switch_config[keyboard_profile][i].tapping_term;
 
-        layer_num = MO_LAYER(keycode);
+        if (key_switches[i].last_press_time + tapping_term <= HAL_GetTick())
+          keycodes_modifier |= MT_MODS(keycode);
+
+      } else if (IS_LAYER_TAP(keycode)) {
+        uint16_t const tapping_term =
+            keyboard_config.key_switch_config[keyboard_profile][i].tapping_term;
+
+        if (key_switches[i].last_press_time + tapping_term <= HAL_GetTick())
+          layer_on(LT_LAYER(keycode));
+
+      } else if (IS_LAYER_MOD(keycode)) {
+        keycodes_modifier |= LM_MODS(keycode);
+        layer_on(LM_LAYER(keycode));
+
+      } else if (IS_LAYER_MOMENTARY(keycode)) {
+        layer_on(MO_LAYER(keycode));
 
       } else if (IS_LAYER_DEFAULT(keycode)) {
-        // Prevent multiple reports of the same keycode
-        if (keycode == previous_keycodes_buffer[i])
-          continue;
-
-        if (layer_num == default_layer_num)
-          layer_num = DF_LAYER(keycode);
         default_layer_num = DF_LAYER(keycode);
 
       } else if (IS_LAYER_TOGGLE(keycode)) {
@@ -314,8 +402,8 @@ static void keyboard_task(void) {
         if (keycode == previous_keycodes_buffer[i])
           continue;
 
-        layer_num = layer_num == TG_LAYER(keycode) ? default_layer_num
-                                                   : TG_LAYER(keycode);
+        layer_toggle(TG_LAYER(keycode));
+
       } else if (IS_PROFILE_SET(keycode)) {
         set_keyboard_profile(PS_PROFILE(keycode));
 
@@ -327,18 +415,87 @@ static void keyboard_task(void) {
       // the buffer every time we poll the key switches
       current_keycodes_buffer[i] = KC_NO;
 
-      // If the momentary layer is released, revert to the default layer
-      if (IS_LAYER_MOMENTARY(keycode) && layer_num == MO_LAYER(keycode))
-        layer_num = default_layer_num;
+      if (IS_MOD_TAP(keycode)) {
+        uint16_t const tapping_term =
+            keyboard_config.key_switch_config[keyboard_profile][i].tapping_term;
+
+        // Check if we have already processed the key release
+        if (previous_keycodes_buffer[i] == KC_NO)
+          continue;
+
+        if (key_switches[i].last_press_time + tapping_term > HAL_GetTick()) {
+          // Reserve the key for the next HID report
+          should_clear_reserved_keycodes = true;
+          key_switches[i].reserved = true;
+        }
+
+      } else if (IS_LAYER_TAP(keycode)) {
+        uint16_t const tapping_term =
+            keyboard_config.key_switch_config[keyboard_profile][i].tapping_term;
+
+        // Check if we have already processed the key release
+        if (previous_keycodes_buffer[i] == KC_NO)
+          continue;
+
+        if (key_switches[i].last_press_time + tapping_term > HAL_GetTick()) {
+          // Reserve the key for the next HID report
+          should_clear_reserved_keycodes = true;
+          key_switches[i].reserved = true;
+        } else {
+          // Otherwise, turn off the layer
+          layer_off(LT_LAYER(keycode));
+        }
+
+      } else if (IS_LAYER_MOMENTARY(keycode)) {
+        // Check if we have already processed the key release
+        if (previous_keycodes_buffer[i] == KC_NO)
+          continue;
+
+        layer_off(MO_LAYER(keycode));
+
+      } else if (IS_LAYER_MOD(keycode)) {
+        // Check if we have already processed the key release
+        if (previous_keycodes_buffer[i] == KC_NO)
+          continue;
+
+        layer_off(LM_LAYER(keycode));
+
+      } else {
+      }
     }
   }
 
   keycodes_buffer_idx ^= 1;
 }
 
+void process_reserved_keycodes(void) {
+  if (!should_clear_reserved_keycodes)
+    return;
+
+  for (uint8_t i = 0; i < NUM_KEYS; i++) {
+    if (!key_switches[i].reserved)
+      continue;
+
+    uint16_t keycode = get_keycode(i);
+
+    // Retrieve the tap key
+    if (IS_MOD_TAP(keycode))
+      keycode = MT_KEY(keycode);
+    else if (IS_LAYER_TAP(keycode))
+      keycode = LT_KEY(keycode);
+
+    process_basic_keycode(keycode, true);
+    key_switches[i].reserved = false;
+  }
+
+  should_clear_reserved_keycodes = false;
+}
+
 static bool send_hid_report(uint8_t report_id) {
   switch (report_id) {
   case REPORT_ID_KEYBOARD:
+    // Check if we have any pending reserved keycodes
+    process_reserved_keycodes();
     tud_hid_keyboard_report(REPORT_ID_KEYBOARD, keycodes_modifier,
                             keyboard_keycodes);
     return true;
@@ -498,6 +655,7 @@ static void process_key(uint8_t key_index, uint16_t adc_value) {
   uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
 
   key_state_t *key = &key_switches[key_index];
+  bool pressed = key->pressed;
 
   // Exponential smoothing
   key->adc_value =
@@ -521,4 +679,8 @@ static void process_key(uint8_t key_index, uint16_t adc_value) {
   default:
     break;
   }
+
+  // If the key is pressed, update the last press time
+  if (!pressed && key->pressed)
+    key->last_press_time = HAL_GetTick();
 }

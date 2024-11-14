@@ -22,14 +22,14 @@ extern keyboard_config_t keyboard_config;
 
 #define CONFIG_ACT(act)                                                        \
   {                                                                            \
-    .mode = KEY_MODE_ACTUATION, .actuation = {                                 \
+    .tapping_term = 200, .mode = KEY_MODE_ACTUATION, .actuation = {            \
       .actuation_distance = (act),                                             \
     }                                                                          \
   }
 
 #define CONFIG_RT(act, rst, rt_down, rt_up)                                    \
   {                                                                            \
-    .mode = KEY_MODE_RAPID_TRIGGER, .rapid_trigger = {                         \
+    .tapping_term = 200, .mode = KEY_MODE_RAPID_TRIGGER, .rapid_trigger = {    \
       .actuation_distance = (act),                                             \
       .reset_distance = (rst),                                                 \
       .rt_down_distance = (rt_down),                                           \

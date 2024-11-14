@@ -50,6 +50,8 @@ typedef struct {
 } __attribute__((packed)) key_mode_rapid_trigger_config_t;
 
 typedef struct {
+  // In units of ms
+  uint16_t tapping_term;
   uint8_t mode;
 
   union {

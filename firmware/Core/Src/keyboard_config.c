@@ -10,6 +10,10 @@
 #include "keyboard.h"
 #include "keycodes.h"
 
+//--------------------------------------------------------------------+
+// Default Configurations
+//--------------------------------------------------------------------+
+
 keyboard_config_t keyboard_config = {
     .magic = KEYBOARD_CONFIG_MAGIC,
     .version = KEYBOARD_CONFIG_VERSION,
@@ -27,8 +31,9 @@ keyboard_config_t keyboard_config = {
 
     .keymap = {
         {
-            {KC_Z, KC_X, KC_C, KC_V, TG(1), KC_PLUS, DF(2), PS(1)},
-            {KC_EXLM, KC_AT, KC_HASH, KC_DLR, KC_UNDS, TG(0), _______, _______},
+            {LSFT_T(KC_Z), LT(1, KC_X), RSFT_LM(1), KC_V, TG(1), KC_PLUS, DF(2),
+             PS(1)},
+            {KC_0, _______, _______, KC_3, KC_UNDS, TG(1), KC_RSFT, _______},
             {KC_Q, KC_W, KC_E, KC_R, MO(3), DF(0), KC_MUTE, KC_WAKE},
             {KC_PERC, KC_CIRC, KC_AMPR, KC_ASTR, _______, _______, _______,
              _______},

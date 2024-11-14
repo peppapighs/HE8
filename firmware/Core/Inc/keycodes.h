@@ -225,6 +225,9 @@ enum {
   KC_RALT = 0x00E6,
   KC_RGUI = 0x00E7,
 
+  // End of basic keycodes
+  BASIC_KC_MAX = 0x00FF,
+
   // Modifier mask keycodes
   MOD_MASK = 0x0100,
   MOD_MASK_CTL = 0x0100,
@@ -232,6 +235,26 @@ enum {
   MOD_MASK_ALT = 0x0400,
   MOD_MASK_GUI = 0x0800,
   MOD_MASK_MAX = 0x1FFF,
+
+  // Modifier-tap keycodes
+  MOD_TAP = 0x2100,
+  MOD_TAP_CTL = 0x2100,
+  MOD_TAP_SFT = 0x2200,
+  MOD_TAP_ALT = 0x2400,
+  MOD_TAP_GUI = 0x2800,
+  MOD_TAP_MAX = 0x3FFF,
+
+  // Layer-tap keycodes (support up to 16 layers)
+  LAYER_TAP = 0x4000,
+  LAYER_TAP_MAX = 0x4FFF,
+
+  // Layer-modifier keycodes (support up to 16 layers)
+  LAYER_MOD = 0x5000,
+  LAYER_MOD_CTL = 0x5010,
+  LAYER_MOD_SFT = 0x5020,
+  LAYER_MOD_ALT = 0x5040,
+  LAYER_MOD_GUI = 0x5080,
+  LAYER_MOD_MAX = 0x51FF,
 
   // Layer keycodes (support up to 16 layers)
   LAYER_MOMENTARY = 0x5200,
@@ -261,10 +284,22 @@ enum {
 #define IS_CONSUMER_CONTROL_KEY(keycode)                                       \
   (KC_BRIU <= (keycode) && (keycode) <= KC_LPAD)
 #define IS_MODIFIER_KEY(keycode) (KC_LCTL <= (keycode) && (keycode) <= KC_RGUI)
+#define IS_BASIC_KEY(keycode) (KC_NO <= (keycode) && (keycode) <= BASIC_KC_MAX)
 
 // Modifier mask ranges
 #define IS_MOD_MASK(keycode)                                                   \
   (MOD_MASK <= (keycode) && (keycode) <= MOD_MASK_MAX)
+
+// Modifier-tap ranges
+#define IS_MOD_TAP(keycode) (MOD_TAP <= (keycode) && (keycode) <= MOD_TAP_MAX)
+
+// Layer-tap ranges
+#define IS_LAYER_TAP(keycode)                                                  \
+  (LAYER_TAP <= (keycode) && (keycode) <= LAYER_TAP_MAX)
+
+// Layer-modifier ranges
+#define IS_LAYER_MOD(keycode)                                                  \
+  (LAYER_MOD <= (keycode) && (keycode) <= LAYER_MOD_MAX)
 
 // Layer ranges
 #define IS_LAYER_MOMENTARY(keycode)                                            \
@@ -319,6 +354,48 @@ enum {
   KC_RABK = LSFT(KC_DOT),
   KC_QUES = LSFT(KC_SLSH),
 };
+
+//--------------------------------------------------------------------+
+// Modifier-Tap Macros
+//--------------------------------------------------------------------+
+
+#define LCTL_T(keycode) ((keycode) | MOD_TAP_CTL)
+#define LSFT_T(keycode) ((keycode) | MOD_TAP_SFT)
+#define LALT_T(keycode) ((keycode) | MOD_TAP_ALT)
+#define LGUI_T(keycode) ((keycode) | MOD_TAP_GUI)
+#define RCTL_T(keycode) (LCTL_T(keycode) | 0x1000)
+#define RSFT_T(keycode) (LSFT_T(keycode) | 0x1000)
+#define RALT_T(keycode) (LALT_T(keycode) | 0x1000)
+#define RGUI_T(keycode) (LGUI_T(keycode) | 0x1000)
+
+#define MT_MODS(keycode)                                                       \
+  ((((keycode) & 0x0F00) >> 8) << (((keycode) & 0x1000) >> 10))
+#define MT_KEY(keycode) ((keycode) & 0x00FF)
+
+//--------------------------------------------------------------------+
+// Layer-Tap Macros
+//--------------------------------------------------------------------+
+
+#define LT(layer, keycode) (LAYER_TAP | ((layer) << 8) | (keycode))
+#define LT_LAYER(keycode) (((keycode) & 0x0F00) >> 8)
+#define LT_KEY(keycode) ((keycode) & 0x00FF)
+
+//--------------------------------------------------------------------+
+// Layer-Modifier Macros
+//--------------------------------------------------------------------+
+
+#define LCTL_LM(layer) ((layer) | LAYER_MOD_CTL)
+#define LSFT_LM(layer) ((layer) | LAYER_MOD_SFT)
+#define LALT_LM(layer) ((layer) | LAYER_MOD_ALT)
+#define LGUI_LM(layer) ((layer) | LAYER_MOD_GUI)
+#define RCTL_LM(layer) (LCTL_LM(layer) | 0x0100)
+#define RSFT_LM(layer) (LSFT_LM(layer) | 0x0100)
+#define RALT_LM(layer) (LALT_LM(layer) | 0x0100)
+#define RGUI_LM(layer) (LGUI_LM(layer) | 0x0100)
+
+#define LM_MODS(keycode)                                                       \
+  ((((keycode) & 0x00F0) >> 4) << (((keycode) & 0x0100) >> 6))
+#define LM_LAYER(keycode) ((keycode) & 0x000F)
 
 //--------------------------------------------------------------------+
 // Layer Macros
