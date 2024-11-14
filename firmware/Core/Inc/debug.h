@@ -17,8 +17,8 @@
 //--------------------------------------------------------------------+
 
 typedef struct {
-  // Number of cycles for each firmware loop
-  uint32_t firmware_loop_latency;
+  // Number of cycles to finish polling the key switches
+  uint32_t keyboard_task_latency;
 } debug_info_t;
 
 extern debug_info_t debug_info;

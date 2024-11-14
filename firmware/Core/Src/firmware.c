@@ -131,23 +131,26 @@ void firmware_init(void) {
 }
 
 void firmware_loop(void) {
-#ifdef DEBUG
-  debug_counter_start();
-#endif
-
   tud_task();
-  keyboard_task();
 
-  if (tud_suspended() && should_remote_wakeup)
+  if (tud_suspended() && should_remote_wakeup) {
     // If we are in suspend mode, wake up the host
     tud_remote_wakeup();
-  else if (tud_hid_ready())
+  } else if (tud_hid_ready()) {
     // Otherwise, start the HID report chain
-    send_hid_report(REPORT_ID_KEYBOARD);
 
 #ifdef DEBUG
-  debug_info.firmware_loop_latency = debug_counter_stop();
+    debug_counter_start();
 #endif
+
+    keyboard_task();
+
+#ifdef DEBUG
+    debug_info.keyboard_task_latency = debug_counter_stop();
+#endif
+
+    send_hid_report(REPORT_ID_KEYBOARD);
+  }
 }
 
 //--------------------------------------------------------------------+
@@ -274,12 +277,7 @@ void clear_hid_data(void) {
 }
 
 uint8_t current_layer(void) {
-  for (uint8_t i = NUM_LAYERS; i > 0; i--) {
-    if (layer_mask & (1 << (i - 1)))
-      return i - 1;
-  }
-
-  return default_layer_num;
+  return layer_mask == 0 ? default_layer_num : 31 - __builtin_clz(layer_mask);
 }
 
 void layer_on(uint8_t layer) { layer_mask |= 1 << layer; }
@@ -415,13 +413,13 @@ static void keyboard_task(void) {
       // the buffer every time we poll the key switches
       current_keycodes_buffer[i] = KC_NO;
 
+      // Check if we have already processed the key release
+      if (previous_keycodes_buffer[i] == KC_NO)
+        continue;
+
       if (IS_MOD_TAP(keycode)) {
         uint16_t const tapping_term =
             keyboard_config.key_switch_config[keyboard_profile][i].tapping_term;
-
-        // Check if we have already processed the key release
-        if (previous_keycodes_buffer[i] == KC_NO)
-          continue;
 
         if (key_switches[i].last_press_time + tapping_term > HAL_GetTick()) {
           // Reserve the key for the next HID report
@@ -433,10 +431,6 @@ static void keyboard_task(void) {
         uint16_t const tapping_term =
             keyboard_config.key_switch_config[keyboard_profile][i].tapping_term;
 
-        // Check if we have already processed the key release
-        if (previous_keycodes_buffer[i] == KC_NO)
-          continue;
-
         if (key_switches[i].last_press_time + tapping_term > HAL_GetTick()) {
           // Reserve the key for the next HID report
           should_clear_reserved_keycodes = true;
@@ -447,17 +441,9 @@ static void keyboard_task(void) {
         }
 
       } else if (IS_LAYER_MOMENTARY(keycode)) {
-        // Check if we have already processed the key release
-        if (previous_keycodes_buffer[i] == KC_NO)
-          continue;
-
         layer_off(MO_LAYER(keycode));
 
       } else if (IS_LAYER_MOD(keycode)) {
-        // Check if we have already processed the key release
-        if (previous_keycodes_buffer[i] == KC_NO)
-          continue;
-
         layer_off(LM_LAYER(keycode));
 
       } else {
