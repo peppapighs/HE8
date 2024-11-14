@@ -41,9 +41,6 @@ typedef struct {
   // Current state
   uint8_t state;
   bool pressed;
-
-  // Used to handle tap-hold keys
-  uint16_t reserved_keycode;
 } key_state_t;
 
 static uint8_t calibration_round;
@@ -63,17 +60,55 @@ static uint8_t default_layer_num;
 
 // If we should send a remote wakeup to the host
 static bool should_remote_wakeup;
-// If we should send and clear the reserved keycodes
-static bool should_clear_reserved_keycodes;
+
+typedef struct {
+  uint8_t keycode;
+  // Modifier will also be derived from the keycode
+  uint8_t modifiers;
+} kb_mods_action_t;
+
+// Keyboard (including consumer control and system control) & modifier actions
+static uint8_t kb_mods_actions_count;
+static kb_mods_action_t kb_mods_actions[NUM_KEYS];
+
+// Tap actions
+static uint8_t tap_actions_count;
+static kb_mods_action_t tap_actions[NUM_KEYS];
+
+enum {
+  ACTION_LAYER_ON,
+  ACTION_LAYER_OFF,
+  ACTION_LAYER_TOGGLE,
+  ACTION_LAYER_DEFAULT,
+};
+
+typedef struct {
+  uint8_t action;
+  uint8_t layer;
+  uint8_t modifiers;
+} layer_action_t;
+
+// Layer actions
+static uint8_t layer_actions_count;
+static layer_action_t layer_actions[NUM_KEYS];
+
+enum {
+  ACTION_PROFILE_SET,
+};
+
+typedef struct {
+  uint8_t action;
+  uint8_t profile;
+} profile_action_t;
+
+// Profile actions
+static uint8_t profile_actions_count;
+static profile_action_t profile_actions[NUM_KEYS];
 
 // Keyboard keycodes
 static uint8_t keyboard_keycodes_count;
 static uint8_t keyboard_keycodes[KEY_ROLL_OVER];
 static uint8_t keycodes_modifier;
-
-// Keycodes swap buffer
-static uint8_t keycodes_buffer_idx;
-static uint16_t keycodes_buffer[2][NUM_KEYS];
 
 // System control keycode
 static uint16_t system_control_keycode;
@@ -83,8 +118,10 @@ static uint16_t last_system_control_keycode;
 static uint16_t consumer_control_keycode;
 static uint16_t last_consumer_control_keycode;
 
-// Gamepad report
-static hid_gamepad_report_t gamepad_report;
+// Keycodes swap buffers
+// We swap the buffers every time we send a HID report
+static uint8_t keycodes_buffer_idx;
+static uint16_t keycodes_buffer[2][NUM_KEYS];
 
 //--------------------------------------------------------------------+
 // Prototypes
@@ -206,7 +243,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 }
 
 //--------------------------------------------------------------------+
-// Helper Functions
+// Initialization Functions
 //--------------------------------------------------------------------+
 
 static void key_switch_state_init(void) {
@@ -222,7 +259,6 @@ static void key_switch_state_init(void) {
     key_switches[i].last_press_time = 0;
     key_switches[i].state = KEY_SWITCH_REST;
     key_switches[i].pressed = false;
-    key_switches[i].reserved_keycode = KC_NO;
   }
 }
 
@@ -233,14 +269,15 @@ static void keyboard_state_init(void) {
 
 static void hid_data_init(void) {
   should_remote_wakeup = false;
-  should_clear_reserved_keycodes = false;
+
+  kb_mods_actions_count = 0;
+  tap_actions_count = 0;
+  layer_actions_count = 0;
+  profile_actions_count = 0;
 
   keyboard_keycodes_count = 0;
   memset(keyboard_keycodes, KC_NO, KEY_ROLL_OVER);
   keycodes_modifier = 0;
-
-  keycodes_buffer_idx = 0;
-  memset(keycodes_buffer[0], KC_NO, 2 * NUM_KEYS);
 
   system_control_keycode = KC_NO;
   last_system_control_keycode = KC_NO;
@@ -248,11 +285,21 @@ static void hid_data_init(void) {
   consumer_control_keycode = KC_NO;
   last_consumer_control_keycode = KC_NO;
 
-  gamepad_report = (hid_gamepad_report_t){0};
+  keycodes_buffer_idx = 0;
+  memset(keycodes_buffer[0], KC_NO, 2 * NUM_KEYS);
 }
+
+//--------------------------------------------------------------------+
+// Polling Functions
+//--------------------------------------------------------------------+
 
 void clear_hid_data(void) {
   should_remote_wakeup = false;
+
+  kb_mods_actions_count = 0;
+  tap_actions_count = 0;
+  layer_actions_count = 0;
+  profile_actions_count = 0;
 
   keyboard_keycodes_count = 0;
   memset(keyboard_keycodes, KC_NO, KEY_ROLL_OVER);
@@ -261,19 +308,14 @@ void clear_hid_data(void) {
   system_control_keycode = KC_NO;
 
   consumer_control_keycode = KC_NO;
-
-  gamepad_report = (hid_gamepad_report_t){0};
 }
 
 uint8_t current_layer(void) {
-  return layer_mask == 0 ? default_layer_num : 31 - __builtin_clz(layer_mask);
+  if (layer_mask == 0)
+    return default_layer_num;
+
+  return 31 - __builtin_clz(layer_mask);
 }
-
-void layer_on(uint8_t layer) { layer_mask |= 1 << layer; }
-
-void layer_off(uint8_t layer) { layer_mask &= ~(1 << layer); }
-
-void layer_toggle(uint8_t layer) { layer_mask ^= 1 << layer; }
 
 uint16_t get_keycode(uint8_t key_index) {
   uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
@@ -287,64 +329,63 @@ uint16_t get_keycode(uint8_t key_index) {
   return keyboard_config.keymap[keyboard_profile][default_layer_num][key_index];
 }
 
-void process_basic_keycode(uint16_t keycode, bool reserved) {
+void add_kb_mods_action(uint8_t keycode, uint8_t modifiers) {
+  kb_mods_actions[kb_mods_actions_count].keycode = keycode;
+  kb_mods_actions[kb_mods_actions_count].modifiers = modifiers;
+  kb_mods_actions_count++;
+}
+
+void add_tap_action(uint8_t keycode, uint8_t modifiers) {
+  tap_actions[tap_actions_count].keycode = keycode;
+  tap_actions[tap_actions_count].modifiers = modifiers;
+  tap_actions_count++;
+}
+
+void add_layer_action(uint8_t action, uint8_t layer, uint8_t modifiers) {
+  layer_actions[layer_actions_count].action = action;
+  layer_actions[layer_actions_count].layer = layer;
+  layer_actions[layer_actions_count].modifiers = modifiers;
+  layer_actions_count++;
+}
+
+void add_profile_action(uint8_t action, uint8_t profile) {
+  profile_actions[profile_actions_count].action = action;
+  profile_actions[profile_actions_count].profile = profile;
+  profile_actions_count++;
+}
+
+void process_basic_keycode(uint8_t keycode) {
   if (IS_KEYBOARD_KEY(keycode)) {
-    if (!reserved) {
-      if (keyboard_keycodes_count >= KEY_ROLL_OVER)
-        return;
+    if (keyboard_keycodes_count >= KEY_ROLL_OVER)
+      return;
 
-      keyboard_keycodes[keyboard_keycodes_count] = keycode;
-      keyboard_keycodes_count++;
-    } else {
-      // Check if the key is already in the buffer
-      for (uint8_t i = 0; i < NUM_KEYS; i++) {
-        if (keycodes_buffer[keycodes_buffer_idx][i] == keycode)
-          return;
-      }
-
-      // Otherwise, if the key is reserved, we insert it to the front of the
-      // buffer regardless if it is full
-      for (uint8_t i = KEY_ROLL_OVER - 1; i > 0; i--)
-        keyboard_keycodes[i] = keyboard_keycodes[i - 1];
-      keyboard_keycodes[0] = keycode;
-
-      if (keyboard_keycodes_count < KEY_ROLL_OVER)
-        keyboard_keycodes_count++;
-    }
+    keyboard_keycodes[keyboard_keycodes_count] = keycode;
+    keyboard_keycodes_count++;
 
   } else if (IS_MODIFIER_KEY(keycode)) {
-    // We handle reserved keycodes identically to basic keycodes
     keycodes_modifier |= keycode_to_modifier(keycode);
 
   } else if (IS_SYSTEM_CONTROL_KEY(keycode)) {
-    // We handle reserved keycodes identically to basic keycodes
+    // Up to one system control keycode can be sent at a time
+    if (system_control_keycode != KC_NO)
+      return;
+
     system_control_keycode = keycode_to_system_control(keycode);
 
   } else if (IS_CONSUMER_CONTROL_KEY(keycode)) {
-    // We handle reserved keycodes identically to basic keycodes
+    // Up to one consumer control keycode can be sent at a time
+    if (consumer_control_keycode != KC_NO)
+      return;
+
     consumer_control_keycode = keycode_to_consumer_control(keycode);
   }
 }
 
-void process_reserved_keycodes(void) {
-  if (!should_clear_reserved_keycodes)
-    return;
-
-  for (uint8_t i = 0; i < NUM_KEYS; i++) {
-    if (key_switches[i].reserved_keycode == KC_NO)
-      continue;
-
-    process_basic_keycode(key_switches[i].reserved_keycode, true);
-    key_switches[i].reserved_keycode = KC_NO;
-  }
-
-  should_clear_reserved_keycodes = false;
-}
-
 static void keyboard_task(void) {
   uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
-  uint16_t *current_keycodes_buffer = keycodes_buffer[keycodes_buffer_idx];
-  uint16_t *previous_keycodes_buffer = keycodes_buffer[keycodes_buffer_idx ^ 1];
+
+  uint16_t *current_buffer = keycodes_buffer[keycodes_buffer_idx];
+  uint16_t *previous_buffer = keycodes_buffer[keycodes_buffer_idx ^ 1];
 
 #ifdef DEBUG
   debug_counter_start();
@@ -353,6 +394,7 @@ static void keyboard_task(void) {
   // Clear HID data before polling key switches
   clear_hid_data();
 
+  // Queue the actions for each key switch
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
     uint16_t keycode = get_keycode(i);
 
@@ -361,112 +403,153 @@ static void keyboard_task(void) {
 
     if (key_switches[i].pressed) {
       // Must release the previous key first if the current key is different
-      if (previous_keycodes_buffer[i] != KC_NO)
-        keycode = previous_keycodes_buffer[i];
-      current_keycodes_buffer[i] = keycode;
+      if (previous_buffer[i] != KC_NO) {
+        if (IS_ONE_TIME_KC(previous_buffer[i])) {
+          // One-time key should be released first before it can be processed
+          // again
+          current_buffer[i] = previous_buffer[i];
+          continue;
+        }
+
+        keycode = previous_buffer[i];
+      }
+      current_buffer[i] = keycode;
 
       if (IS_BASIC_KEY(keycode)) {
-        process_basic_keycode(keycode, false);
+        add_kb_mods_action(keycode, 0);
 
       } else if (IS_MOD_MASK(keycode)) {
-        // Check the number of keycodes first so that we don't override the
-        // modifier unless there is a buffer space for the keycode
-        if (keyboard_keycodes_count >= KEY_ROLL_OVER)
-          continue;
-
-        keycodes_modifier |= MM_MODS(keycode);
-        keyboard_keycodes[keyboard_keycodes_count] = MM_KEY(keycode);
-        keyboard_keycodes_count++;
+        add_kb_mods_action(MM_KEY(keycode), MM_MODS(keycode));
 
       } else if (IS_MOD_TAP(keycode)) {
         uint16_t const tapping_term =
             keyboard_config.key_switch_config[keyboard_profile][i].tapping_term;
 
-        if (key_switches[i].last_press_time + tapping_term <= HAL_GetTick())
-          keycodes_modifier |= MT_MODS(keycode);
+        if (key_switches[i].last_press_time + tapping_term > HAL_GetTick())
+          continue;
+
+        add_kb_mods_action(KC_NO, MT_MODS(keycode));
 
       } else if (IS_LAYER_TAP(keycode)) {
         uint16_t const tapping_term =
             keyboard_config.key_switch_config[keyboard_profile][i].tapping_term;
 
-        if (key_switches[i].last_press_time + tapping_term <= HAL_GetTick())
-          layer_on(LT_LAYER(keycode));
-
-      } else if (IS_LAYER_MOD(keycode)) {
-        keycodes_modifier |= LM_MODS(keycode);
-        layer_on(LM_LAYER(keycode));
-
-      } else if (IS_LAYER_MOMENTARY(keycode)) {
-        layer_on(MO_LAYER(keycode));
-
-      } else if (IS_LAYER_DEFAULT(keycode)) {
-        default_layer_num = DF_LAYER(keycode);
-
-      } else if (IS_LAYER_TOGGLE(keycode)) {
-        // Prevent multiple reports of the same keycode
-        if (keycode == previous_keycodes_buffer[i])
+        if (key_switches[i].last_press_time + tapping_term > HAL_GetTick())
           continue;
 
-        layer_toggle(TG_LAYER(keycode));
+        add_layer_action(ACTION_LAYER_ON, LT_LAYER(keycode), 0);
+      } else if (IS_LAYER_MOD(keycode)) {
+        add_layer_action(ACTION_LAYER_ON, LM_LAYER(keycode), LM_MODS(keycode));
+
+      } else if (IS_LAYER_MOMENTARY(keycode)) {
+        add_layer_action(ACTION_LAYER_ON, MO_LAYER(keycode), 0);
+
+      } else if (IS_LAYER_DEFAULT(keycode)) {
+        add_layer_action(ACTION_LAYER_DEFAULT, DF_LAYER(keycode), 0);
+
+      } else if (IS_LAYER_TOGGLE(keycode)) {
+        add_layer_action(ACTION_LAYER_TOGGLE, TG_LAYER(keycode), 0);
 
       } else if (IS_PROFILE_SET(keycode)) {
-        set_keyboard_profile(PS_PROFILE(keycode));
-
-      } else {
-        // TODO: Implement mouse and gamepad
+        add_profile_action(ACTION_PROFILE_SET, PS_PROFILE(keycode));
       }
     } else {
-      // Clear the keycodes buffer if the key is released to avoid initializing
-      // the buffer every time we poll the key switches
-      current_keycodes_buffer[i] = KC_NO;
+      current_buffer[i] = KC_NO;
 
-      // Check if we have already processed the key release
-      if (previous_keycodes_buffer[i] == KC_NO)
+      // If the key release has been processed, skip the key
+      if (previous_buffer[i] == KC_NO)
         continue;
 
+      // Release the last pressed key
+      keycode = previous_buffer[i];
       if (IS_MOD_TAP(keycode)) {
         uint16_t const tapping_term =
             keyboard_config.key_switch_config[keyboard_profile][i].tapping_term;
 
-        if (key_switches[i].last_press_time + tapping_term > HAL_GetTick()) {
-          // Reserve the key for the next HID report
-          should_clear_reserved_keycodes = true;
-          key_switches[i].reserved_keycode = MT_KEY(keycode);
-        }
+        if (key_switches[i].last_press_time + tapping_term > HAL_GetTick())
+          add_tap_action(MT_KEY(keycode), 0);
 
       } else if (IS_LAYER_TAP(keycode)) {
         uint16_t const tapping_term =
             keyboard_config.key_switch_config[keyboard_profile][i].tapping_term;
 
-        if (key_switches[i].last_press_time + tapping_term > HAL_GetTick()) {
-          // Reserve the key for the next HID report
-          should_clear_reserved_keycodes = true;
-          key_switches[i].reserved_keycode = LT_KEY(keycode);
-        } else {
-          // Otherwise, turn off the layer
-          layer_off(LT_LAYER(keycode));
-        }
-
-      } else if (IS_LAYER_MOMENTARY(keycode)) {
-        layer_off(MO_LAYER(keycode));
+        if (key_switches[i].last_press_time + tapping_term > HAL_GetTick())
+          add_tap_action(LT_KEY(keycode), 0);
+        else
+          add_layer_action(ACTION_LAYER_OFF, LT_LAYER(keycode), 0);
 
       } else if (IS_LAYER_MOD(keycode)) {
-        layer_off(LM_LAYER(keycode));
+        add_layer_action(ACTION_LAYER_OFF, LM_LAYER(keycode), 0);
 
-      } else {
+      } else if (IS_LAYER_MOMENTARY(keycode)) {
+        add_layer_action(ACTION_LAYER_OFF, MO_LAYER(keycode), 0);
       }
     }
   }
 
-  // Check if we need to send the reserved keycodes
-  process_reserved_keycodes();
+  // Construct the report payload from the actions
+  // We prioritize tap actions
+  for (uint8_t i = 0; i < tap_actions_count; i++) {
+    process_basic_keycode(tap_actions[i].keycode);
+    keycodes_modifier |= tap_actions[i].modifiers;
+  }
 
+  // Then we process keyboard and modifier actions
+  for (uint8_t i = 0; i < kb_mods_actions_count; i++) {
+    process_basic_keycode(kb_mods_actions[i].keycode);
+    keycodes_modifier |= kb_mods_actions[i].modifiers;
+  }
+
+  // Finally, we process layer and profile actions
+  for (uint8_t i = 0; i < layer_actions_count; i++) {
+    switch (layer_actions[i].action) {
+    case ACTION_LAYER_ON:
+      layer_mask |= 1 << layer_actions[i].layer;
+      keycodes_modifier |= layer_actions[i].modifiers;
+      break;
+
+    case ACTION_LAYER_OFF:
+      layer_mask &= ~(1 << layer_actions[i].layer);
+      break;
+
+    case ACTION_LAYER_TOGGLE:
+      layer_mask ^= 1 << layer_actions[i].layer;
+      break;
+
+    case ACTION_LAYER_DEFAULT:
+      default_layer_num = layer_actions[i].layer;
+      break;
+
+    default:
+      break;
+    }
+  }
+
+  for (uint8_t i = 0; i < profile_actions_count; i++) {
+    switch (profile_actions[i].action) {
+    case ACTION_PROFILE_SET:
+      set_keyboard_profile(profile_actions[i].profile);
+      // Reset the layer mask and default layer number when changing profiles
+      layer_mask = 0;
+      default_layer_num = 0;
+      break;
+
+    default:
+      break;
+    }
+  }
+
+  // Swap the keycodes buffer
   keycodes_buffer_idx ^= 1;
 
 #ifdef DEBUG
   debug_info.keyboard_task_latency = debug_counter_stop();
 #endif
 }
+
+//--------------------------------------------------------------------+
+// HID Report Functions
+//--------------------------------------------------------------------+
 
 static bool send_hid_report(uint8_t report_id) {
   switch (report_id) {
@@ -509,6 +592,10 @@ static bool send_hid_report(uint8_t report_id) {
 
   return false;
 }
+
+//--------------------------------------------------------------------+
+// Switch Functions
+//--------------------------------------------------------------------+
 
 static void calibrate_key_switch(uint8_t key_index, uint16_t adc_value) {
   uint16_t const adc_offset =

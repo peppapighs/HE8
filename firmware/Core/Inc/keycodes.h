@@ -256,6 +256,10 @@ enum {
   LAYER_MOD_GUI = 0x5080,
   LAYER_MOD_MAX = 0x51FF,
 
+  // Start of one-time keycodes (keys that will not be processed again unless
+  // they are released)
+  ONE_TIME_KC_START = 0x5200,
+
   // Layer keycodes (support up to 16 layers)
   LAYER_MOMENTARY = 0x5200,
   LAYER_MOMENTARY_MAX = 0x520F,
@@ -267,6 +271,9 @@ enum {
   // Profile keycodes (support up to 16 profiles)
   PROFILE_SET = 0x5300,
   PROFILE_SET_MAX = 0x530F,
+
+  // End of one-time keycodes
+  ONE_TIME_KC_END = 0x5FFF,
 
   // Aliases
   XXXXXXX = KC_NO,
@@ -312,6 +319,10 @@ enum {
 // Profile ranges
 #define IS_PROFILE_SET(keycode)                                                \
   (PROFILE_SET <= (keycode) && (keycode) <= PROFILE_SET_MAX)
+
+// One-time key ranges
+#define IS_ONE_TIME_KC(keycode)                                                \
+  (ONE_TIME_KC_START <= (keycode) && (keycode) <= ONE_TIME_KC_END)
 
 //--------------------------------------------------------------------+
 // Modifier Mask Macros
