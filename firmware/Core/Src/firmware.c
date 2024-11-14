@@ -42,9 +42,8 @@ typedef struct {
   uint8_t state;
   bool pressed;
 
-  // Set to `true` if the key must be sent in the next HID report
   // Used to handle tap-hold keys
-  bool reserved;
+  uint16_t reserved_keycode;
 } key_state_t;
 
 static uint8_t calibration_round;
@@ -138,18 +137,9 @@ void firmware_loop(void) {
     tud_remote_wakeup();
   } else if (tud_hid_ready()) {
     // Otherwise, start the HID report chain
-
-#ifdef DEBUG
-    debug_counter_start();
-#endif
-
-    keyboard_task();
-
-#ifdef DEBUG
-    debug_info.keyboard_task_latency = debug_counter_stop();
-#endif
-
     send_hid_report(REPORT_ID_KEYBOARD);
+    // Poll key switches after sending the report to avoid latency
+    keyboard_task();
   }
 }
 
@@ -163,7 +153,6 @@ void firmware_loop(void) {
 uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
                                hid_report_type_t report_type, uint8_t *buffer,
                                uint16_t reqlen) {
-
   return 0;
 }
 
@@ -233,7 +222,7 @@ static void key_switch_state_init(void) {
     key_switches[i].last_press_time = 0;
     key_switches[i].state = KEY_SWITCH_REST;
     key_switches[i].pressed = false;
-    key_switches[i].reserved = false;
+    key_switches[i].reserved_keycode = KC_NO;
   }
 }
 
@@ -288,14 +277,13 @@ void layer_toggle(uint8_t layer) { layer_mask ^= 1 << layer; }
 
 uint16_t get_keycode(uint8_t key_index) {
   uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
+  uint8_t const layer_num = current_layer();
 
-  // Find highest active layer without transparent key
-  for (uint8_t i = NUM_LAYERS; i > 0; i--) {
-    if ((layer_mask & (1 << (i - 1))) &&
-        keyboard_config.keymap[keyboard_profile][i - 1][key_index] != KC_TRNS)
-      return keyboard_config.keymap[keyboard_profile][i - 1][key_index];
-  }
+  if (keyboard_config.keymap[keyboard_profile][layer_num][key_index] != KC_TRNS)
+    return keyboard_config.keymap[keyboard_profile][layer_num][key_index];
 
+  // Unlike QMK, we don't find the highest active layer but fallback to the
+  // default layer instead
   return keyboard_config.keymap[keyboard_profile][default_layer_num][key_index];
 }
 
@@ -338,10 +326,29 @@ void process_basic_keycode(uint16_t keycode, bool reserved) {
   }
 }
 
+void process_reserved_keycodes(void) {
+  if (!should_clear_reserved_keycodes)
+    return;
+
+  for (uint8_t i = 0; i < NUM_KEYS; i++) {
+    if (key_switches[i].reserved_keycode == KC_NO)
+      continue;
+
+    process_basic_keycode(key_switches[i].reserved_keycode, true);
+    key_switches[i].reserved_keycode = KC_NO;
+  }
+
+  should_clear_reserved_keycodes = false;
+}
+
 static void keyboard_task(void) {
   uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
   uint16_t *current_keycodes_buffer = keycodes_buffer[keycodes_buffer_idx];
   uint16_t *previous_keycodes_buffer = keycodes_buffer[keycodes_buffer_idx ^ 1];
+
+#ifdef DEBUG
+  debug_counter_start();
+#endif
 
   // Clear HID data before polling key switches
   clear_hid_data();
@@ -424,7 +431,7 @@ static void keyboard_task(void) {
         if (key_switches[i].last_press_time + tapping_term > HAL_GetTick()) {
           // Reserve the key for the next HID report
           should_clear_reserved_keycodes = true;
-          key_switches[i].reserved = true;
+          key_switches[i].reserved_keycode = MT_KEY(keycode);
         }
 
       } else if (IS_LAYER_TAP(keycode)) {
@@ -434,7 +441,7 @@ static void keyboard_task(void) {
         if (key_switches[i].last_press_time + tapping_term > HAL_GetTick()) {
           // Reserve the key for the next HID report
           should_clear_reserved_keycodes = true;
-          key_switches[i].reserved = true;
+          key_switches[i].reserved_keycode = LT_KEY(keycode);
         } else {
           // Otherwise, turn off the layer
           layer_off(LT_LAYER(keycode));
@@ -451,37 +458,19 @@ static void keyboard_task(void) {
     }
   }
 
+  // Check if we need to send the reserved keycodes
+  process_reserved_keycodes();
+
   keycodes_buffer_idx ^= 1;
-}
 
-void process_reserved_keycodes(void) {
-  if (!should_clear_reserved_keycodes)
-    return;
-
-  for (uint8_t i = 0; i < NUM_KEYS; i++) {
-    if (!key_switches[i].reserved)
-      continue;
-
-    uint16_t keycode = get_keycode(i);
-
-    // Retrieve the tap key
-    if (IS_MOD_TAP(keycode))
-      keycode = MT_KEY(keycode);
-    else if (IS_LAYER_TAP(keycode))
-      keycode = LT_KEY(keycode);
-
-    process_basic_keycode(keycode, true);
-    key_switches[i].reserved = false;
-  }
-
-  should_clear_reserved_keycodes = false;
+#ifdef DEBUG
+  debug_info.keyboard_task_latency = debug_counter_stop();
+#endif
 }
 
 static bool send_hid_report(uint8_t report_id) {
   switch (report_id) {
   case REPORT_ID_KEYBOARD:
-    // Check if we have any pending reserved keycodes
-    process_reserved_keycodes();
     tud_hid_keyboard_report(REPORT_ID_KEYBOARD, keycodes_modifier,
                             keyboard_keycodes);
     return true;
