@@ -10,42 +10,11 @@
 #include "tusb.h"
 
 #include "debug.h"
+#include "key_switch.h"
 #include "keyboard_config.h"
 #include "keycodes.h"
 #include "main.h"
 #include "usb_descriptors.h"
-
-//--------------------------------------------------------------------+
-// Switch State
-//--------------------------------------------------------------------+
-
-enum {
-  KEY_SWITCH_REST,
-  KEY_SWITCH_RT_DOWN,
-  KEY_SWITCH_RT_UP,
-};
-
-typedef struct {
-  // Calibration data
-  uint16_t min_value;
-  uint16_t max_value;
-
-  // Distance data
-  uint16_t adc_value;
-  uint16_t distance;
-  uint16_t peek_distance;
-
-  // Timestamp
-  uint32_t last_press_time;
-
-  // Current state
-  uint8_t state;
-  bool pressed;
-} key_state_t;
-
-static uint8_t calibration_round;
-static uint8_t current_mux_index;
-static key_state_t key_switches[NUM_KEYS];
 
 //--------------------------------------------------------------------+
 // Keyboard State
@@ -127,23 +96,15 @@ static uint16_t keycodes_buffer[2][NUM_KEYS];
 // Prototypes
 //--------------------------------------------------------------------+
 
-// Initialize key switches before firmware starts
-static void key_switch_state_init(void);
 // Initialize keyboard state before firmware starts
 static void keyboard_state_init(void);
 // Initialize HID related data before firmware starts
 static void hid_data_init(void);
 // Poll keyboard switches
 static void keyboard_task(void);
-// Send HID report. Return `true` if the report is sent
-static bool send_hid_report(uint8_t report_id);
-// Calibrate key switch during calibration rounds
-static void calibrate_key_switch(uint8_t key_index, uint16_t adc_value);
-// Process ADC value change for a key switch
-static void process_key(uint8_t key_index, uint16_t adc_value);
 
 //--------------------------------------------------------------------+
-// Implementation
+// Firmware Functions
 //--------------------------------------------------------------------+
 
 void firmware_init(void) {
@@ -160,7 +121,7 @@ void firmware_init(void) {
 
   HAL_ADC_Start_IT(&hadc1);
 
-  while (calibration_round < CALIBRATION_ROUNDS)
+  while (is_calibrating_key_switches())
     ;
 
   tusb_init(1, NULL);
@@ -181,86 +142,8 @@ void firmware_loop(void) {
 }
 
 //--------------------------------------------------------------------+
-// HID Related Callbacks
-//--------------------------------------------------------------------+
-
-// Invoked when received GET_REPORT control request
-// Application must fill buffer report's content and return its length.
-// Return zero will cause the stack to STALL request
-uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
-                               hid_report_type_t report_type, uint8_t *buffer,
-                               uint16_t reqlen) {
-  return 0;
-}
-
-// Invoked when received SET_REPORT control request or
-// received data on OUT endpoint ( Report ID = 0, Type = 0 )
-void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
-                           hid_report_type_t report_type, uint8_t const *buffer,
-                           uint16_t bufsize) {}
-
-// Invoked when sent REPORT successfully to host
-// Application can use this to send the next report
-// Note: For composite reports, report[0] is report ID
-void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
-                                uint16_t len) {
-  for (uint8_t i = report[0] + 1; i < REPORT_ID_COUNT; i++) {
-    if (send_hid_report(i))
-      return;
-  }
-}
-
-//--------------------------------------------------------------------+
-// HAL Callbacks
-//--------------------------------------------------------------------+
-
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-  if (hadc == &hadc1) {
-    uint16_t adc_value = HAL_ADC_GetValue(&hadc1);
-
-    for (uint8_t i = 0; i < NUM_MUX; i++) {
-      if (calibration_round < CALIBRATION_ROUNDS)
-        calibrate_key_switch(mux_matrices[i][current_mux_index], adc_value);
-      else
-        process_key(mux_matrices[i][current_mux_index], adc_value);
-    }
-
-    current_mux_index = (current_mux_index + 1) & (NUM_KEYS_PER_MUX - 1);
-    if (calibration_round < CALIBRATION_ROUNDS && current_mux_index == 0)
-      calibration_round++;
-
-    for (uint8_t j = 0; j < NUM_MUX_SELECT_PINS; j++)
-      HAL_GPIO_WritePin(mux_select_ports[j], mux_select_pins[j],
-                        (GPIO_PinState)((current_mux_index >> j) & 1));
-
-    HAL_TIM_Base_Start_IT(&htim10);
-  }
-}
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-  if (htim == &htim10)
-    HAL_ADC_Start_IT(&hadc1);
-}
-
-//--------------------------------------------------------------------+
 // Initialization Functions
 //--------------------------------------------------------------------+
-
-static void key_switch_state_init(void) {
-  calibration_round = 0;
-  current_mux_index = 0;
-
-  for (uint8_t i = 0; i < NUM_KEYS; i++) {
-    key_switches[i].min_value = ADC_MAX_VALUE;
-    key_switches[i].max_value = 0;
-    key_switches[i].adc_value = 0;
-    key_switches[i].distance = 0;
-    key_switches[i].peek_distance = 0;
-    key_switches[i].last_press_time = 0;
-    key_switches[i].state = KEY_SWITCH_REST;
-    key_switches[i].pressed = false;
-  }
-}
 
 static void keyboard_state_init(void) {
   layer_mask = 0;
@@ -396,6 +279,9 @@ static void keyboard_task(void) {
 
   // Queue the actions for each key switch
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
+    // Process the ADC value change for each key switch
+    process_key(i);
+
     uint16_t keycode = get_keycode(i);
 
     // If at least one key is pressed, we should wake up the host
@@ -494,13 +380,11 @@ static void keyboard_task(void) {
     keycodes_modifier |= tap_actions[i].modifiers;
   }
 
-  // Then we process keyboard and modifier actions
   for (uint8_t i = 0; i < kb_mods_actions_count; i++) {
     process_basic_keycode(kb_mods_actions[i].keycode);
     keycodes_modifier |= kb_mods_actions[i].modifiers;
   }
 
-  // Finally, we process layer and profile actions
   for (uint8_t i = 0; i < layer_actions_count; i++) {
     switch (layer_actions[i].action) {
     case ACTION_LAYER_ON:
@@ -551,7 +435,7 @@ static void keyboard_task(void) {
 // HID Report Functions
 //--------------------------------------------------------------------+
 
-static bool send_hid_report(uint8_t report_id) {
+bool send_hid_report(uint8_t report_id) {
   switch (report_id) {
   case REPORT_ID_KEYBOARD:
     tud_hid_keyboard_report(REPORT_ID_KEYBOARD, keycodes_modifier,
@@ -591,158 +475,4 @@ static bool send_hid_report(uint8_t report_id) {
   }
 
   return false;
-}
-
-//--------------------------------------------------------------------+
-// Switch Functions
-//--------------------------------------------------------------------+
-
-static void calibrate_key_switch(uint8_t key_index, uint16_t adc_value) {
-  uint16_t const adc_offset =
-      switch_profiles[keyboard_config.switch_profile].adc_offset;
-
-  key_state_t *key = &key_switches[key_index];
-
-  key->adc_value = adc_value;
-
-  if (key->adc_value > key->max_value) {
-    key->max_value = key->adc_value;
-
-    if (key->adc_value >= adc_offset)
-      key->min_value = key->adc_value - adc_offset;
-    else
-      key->min_value = 0;
-  }
-}
-
-uint16_t adc_value_to_distance(uint8_t key_index) {
-  uint16_t const switch_distance =
-      switch_profiles[keyboard_config.switch_profile].travel_distance;
-
-  key_state_t *key = &key_switches[key_index];
-
-  if (key->adc_value > key->max_value || key->min_value >= key->max_value)
-    return 0;
-  if (key->adc_value < key->min_value)
-    return switch_distance;
-
-  // Quadratic interpolation
-  uint32_t const numerator = (uint32_t)(key->adc_value - key->min_value) *
-                             (key->adc_value - key->min_value) *
-                             switch_distance;
-  uint32_t const denominator = (uint32_t)(key->max_value - key->min_value) *
-                               (key->max_value - key->min_value);
-
-  return (uint32_t)switch_distance - numerator / denominator;
-}
-
-void process_actuation(uint8_t key_index) {
-  uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
-  uint16_t const actuation_distance =
-      keyboard_config.key_switch_config[keyboard_profile][key_index]
-          .actuation.actuation_distance;
-
-  key_state_t *key = &key_switches[key_index];
-
-  key->pressed = key->distance >= actuation_distance;
-}
-
-void process_rapid_trigger(uint8_t key_index) {
-  uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
-  uint16_t const actuation_distance =
-      keyboard_config.key_switch_config[keyboard_profile][key_index]
-          .rapid_trigger.actuation_distance;
-  uint16_t const reset_distance =
-      keyboard_config.key_switch_config[keyboard_profile][key_index]
-          .rapid_trigger.reset_distance;
-  uint16_t const rt_down_distance =
-      keyboard_config.key_switch_config[keyboard_profile][key_index]
-          .rapid_trigger.rt_down_distance;
-  uint16_t const rt_up_distance =
-      keyboard_config.key_switch_config[keyboard_profile][key_index]
-          .rapid_trigger.rt_up_distance;
-
-  key_state_t *key = &key_switches[key_index];
-
-  switch (key->state) {
-  case KEY_SWITCH_REST:
-    if (key->distance > actuation_distance) {
-      // The key has reached the actuation distance so it is pressed
-      key->state = KEY_SWITCH_RT_DOWN;
-      key->peek_distance = key->distance;
-      key->pressed = true;
-    }
-    break;
-
-  case KEY_SWITCH_RT_DOWN:
-    if (key->distance <= reset_distance) {
-      // The key is below the reset distance so it is released
-      key->state = KEY_SWITCH_REST;
-      key->peek_distance = key->distance;
-      key->pressed = false;
-    } else if (key->distance + rt_up_distance < key->peek_distance) {
-      // The key is released from the peek distance so it is released
-      key->state = KEY_SWITCH_RT_UP;
-      key->peek_distance = key->distance;
-      key->pressed = false;
-    } else if (key->distance > key->peek_distance) {
-      // Update peek distance if needed
-      key->peek_distance = key->distance;
-    }
-    break;
-
-  case KEY_SWITCH_RT_UP:
-    if (key->distance <= reset_distance) {
-      // The key is below the reset distance so it is released
-      key->state = KEY_SWITCH_REST;
-      key->peek_distance = key->distance;
-      key->pressed = false;
-    } else if (key->peek_distance + rt_down_distance < key->distance) {
-      // The key is pressed from the peek distance so it is pressed
-      key->state = KEY_SWITCH_RT_DOWN;
-      key->peek_distance = key->distance;
-      key->pressed = true;
-    } else if (key->distance < key->peek_distance) {
-      // Update peek distance if needed
-      key->peek_distance = key->distance;
-    }
-    break;
-
-  default:
-    break;
-  }
-}
-
-static void process_key(uint8_t key_index, uint16_t adc_value) {
-  uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
-
-  key_state_t *key = &key_switches[key_index];
-  bool pressed = key->pressed;
-
-  // Exponential smoothing
-  key->adc_value =
-      ((uint32_t)key->adc_value * ((1 << ADC_EXP_RSHIFT) - 1) + adc_value) >>
-      ADC_EXP_RSHIFT;
-
-  // Calibrating min value
-  if (key->adc_value < key->min_value)
-    key->min_value = key->adc_value;
-
-  key->distance = adc_value_to_distance(key_index);
-  switch (keyboard_config.key_switch_config[keyboard_profile][key_index].mode) {
-  case KEY_MODE_ACTUATION:
-    process_actuation(key_index);
-    break;
-
-  case KEY_MODE_RAPID_TRIGGER:
-    process_rapid_trigger(key_index);
-    break;
-
-  default:
-    break;
-  }
-
-  // If the key is pressed, update the last press time
-  if (!pressed && key->pressed)
-    key->last_press_time = HAL_GetTick();
 }

@@ -10,7 +10,7 @@
 #include "tusb.h"
 
 //--------------------------------------------------------------------+
-// Implementation
+// Keycode Conversion Functions
 //--------------------------------------------------------------------+
 
 uint16_t keycode_to_system_control(uint16_t keycode) {

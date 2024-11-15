@@ -33,7 +33,7 @@ static bool eeprom_read(uint32_t address, uint8_t *data, size_t size);
 static bool eeprom_write(uint32_t address, uint8_t *data, size_t size);
 
 //--------------------------------------------------------------------+
-// Implementation
+// Configuration Functions
 //--------------------------------------------------------------------+
 
 void load_keyboard_config(void) {
