@@ -62,7 +62,7 @@ void calibrate_key_switch(uint8_t key_index, uint16_t adc_value) {
 }
 
 uint16_t adc_value_to_distance(uint8_t key_index) {
-  uint16_t const switch_distance =
+  uint32_t const switch_distance =
       switch_profiles[keyboard_config.switch_profile].travel_distance;
 
   key_state_t *key = &key_switches[key_index];
@@ -73,13 +73,16 @@ uint16_t adc_value_to_distance(uint8_t key_index) {
     return switch_distance;
 
   // Quadratic interpolation
-  uint32_t const numerator = (uint32_t)(key->adc_value - key->min_value) *
-                             (key->adc_value - key->min_value) *
-                             switch_distance;
-  uint32_t const denominator = (uint32_t)(key->max_value - key->min_value) *
-                               (key->max_value - key->min_value);
+  uint32_t const adjusted_min =
+      ((uint32_t)key->min_value * ADC_MIN_MULTIPLIER) >> 9;
+  uint32_t const numerator =
+      ((uint32_t)key->max_value + key->adc_value - adjusted_min) *
+      (key->max_value - key->adc_value) * switch_distance;
+  uint32_t const denominator =
+      ((uint32_t)key->max_value + key->min_value - adjusted_min) *
+      (key->max_value - key->min_value);
 
-  return (uint32_t)switch_distance - numerator / denominator;
+  return numerator / denominator;
 }
 
 void process_actuation(uint8_t key_index) {

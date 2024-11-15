@@ -65,6 +65,8 @@ extern uint16_t const mux_select_pins[NUM_MUX_SELECT_PINS];
 // ADC exponential smoothing
 // Higher the value, slower the response, but more stable
 #define ADC_EXP_RSHIFT 4
+// The closer the value to 1024, the more quadratic the ADC-to-distance curve
+#define ADC_MIN_MULTIPLIER 719
 
 // Number of keys. Also represents unconnected MUX inputs
 #define NUM_KEYS 8
