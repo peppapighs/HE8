@@ -230,7 +230,7 @@ enum {
 
   // Modifier mask keycodes
   MOD_MASK = 0x0100,
-  MOD_MASK_CTL = 0x0100,
+  MOD_MASK_CTL = MOD_MASK,
   MOD_MASK_SFT = 0x0200,
   MOD_MASK_ALT = 0x0400,
   MOD_MASK_GUI = 0x0800,
@@ -238,7 +238,7 @@ enum {
 
   // Modifier-tap keycodes
   MOD_TAP = 0x2100,
-  MOD_TAP_CTL = 0x2100,
+  MOD_TAP_CTL = MOD_TAP,
   MOD_TAP_SFT = 0x2200,
   MOD_TAP_ALT = 0x2400,
   MOD_TAP_GUI = 0x2800,
@@ -261,7 +261,7 @@ enum {
   ONE_TIME_KC_START = 0x5200,
 
   // Layer keycodes (support up to 16 layers)
-  LAYER_MOMENTARY = 0x5200,
+  LAYER_MOMENTARY = ONE_TIME_KC_START,
   LAYER_MOMENTARY_MAX = 0x520F,
   LAYER_DEFAULT = 0x5210,
   LAYER_DEFAULT_MAX = 0x521F,
