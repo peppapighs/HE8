@@ -11,7 +11,7 @@
 
 #include "debug.h"
 #include "key_switch.h"
-#include "keyboard_config.h"
+#include "keyboard.h"
 #include "keycodes.h"
 #include "main.h"
 #include "usb_descriptors.h"
@@ -112,8 +112,7 @@ void firmware_init(void) {
   debug_init();
 #endif
 
-  // TODO: Uncomment the following line after implementing EEPROM functions
-  // load_keyboard_config();
+  load_keyboard_config();
 
   key_switch_state_init();
   keyboard_state_init();
@@ -124,7 +123,7 @@ void firmware_init(void) {
   while (is_calibrating_key_switches())
     ;
 
-  tusb_init(1, NULL);
+  tusb_init(BOARD_TUD_RHPORT, NULL);
 }
 
 void firmware_loop(void) {

@@ -8,6 +8,8 @@
 #ifndef INC_KEYBOARD_H_
 #define INC_KEYBOARD_H_
 
+#include "tusb.h"
+
 #include "firmware_config.h"
 
 //--------------------------------------------------------------------+
@@ -15,11 +17,11 @@
 //--------------------------------------------------------------------+
 
 enum {
-  SWITCH_PROF_GEON_RAW_HE,
-  SWITCH_PROF_GATERON_MAGNETIC_JADE,
-  SWITCH_PROF_WOOTING_LEKKER,
-  SWITCH_PROF_GATERON_KS_20,
-  SWITCH_PROF_COUNT,
+  SWITCH_PROF_GEON_RAW_HE = 0x00,
+  SWITCH_PROF_GATERON_MAGNETIC_JADE = 0x01,
+  SWITCH_PROF_WOOTING_LEKKER = 0x02,
+  SWITCH_PROF_GATERON_KS_20 = 0x03,
+  SWITCH_PROF_COUNT = 0x04,
 };
 
 typedef struct {
@@ -32,8 +34,8 @@ typedef struct {
 extern switch_profile_t const switch_profiles[SWITCH_PROF_COUNT];
 
 enum {
-  KEY_MODE_ACTUATION,
-  KEY_MODE_RAPID_TRIGGER,
+  KEY_MODE_ACTUATION = 0x0,
+  KEY_MODE_RAPID_TRIGGER = 0x1,
 };
 
 typedef struct {
@@ -75,6 +77,11 @@ typedef struct {
   uint16_t keymap[NUM_PROFILES][NUM_LAYERS][NUM_KEYS];
 } __attribute__((packed)) keyboard_config_t;
 
+TU_VERIFY_STATIC(sizeof(keyboard_config_t) <= UINT16_MAX,
+                 "keyboard_config_t size does not fit in uint16_t");
+
+extern keyboard_config_t keyboard_config;
+
 //--------------------------------------------------------------------+
 // Configuration Functions
 //--------------------------------------------------------------------+
@@ -83,8 +90,6 @@ typedef struct {
 // If the configuration is invalid, load default configuration and save it
 // If the configuration version is outdated, migrate it
 void load_keyboard_config(void);
-// Set switch profile
-void set_switch_profile(uint8_t profile);
 // Set keyboard profile
 void set_keyboard_profile(uint8_t profile);
 

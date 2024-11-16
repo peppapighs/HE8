@@ -8,7 +8,6 @@
 #include "key_switch.h"
 
 #include "keyboard.h"
-#include "keyboard_config.h"
 #include "main.h"
 
 //--------------------------------------------------------------------+

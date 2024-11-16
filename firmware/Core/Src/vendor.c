@@ -8,6 +8,7 @@
 #include "tusb.h"
 
 #include "firmware_config.h"
+#include "keyboard.h"
 #include "usb_descriptors.h"
 
 //--------------------------------------------------------------------+
@@ -26,14 +27,13 @@ const tusb_desc_webusb_url_t desc_url = {
 // request)
 bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
                                 tusb_control_request_t const *request) {
-  // nothing to with DATA & ACK stage
-  if (stage != CONTROL_STAGE_SETUP)
-    return true;
-
   switch (request->bmRequestType_bit.type) {
   case TUSB_REQ_TYPE_VENDOR:
     switch (request->bRequest) {
     case VENDOR_REQUEST_WEBUSB:
+      if (stage != CONTROL_STAGE_SETUP)
+        return true;
+
       // match vendor request in BOS descriptor
       // Get landing page url
       return tud_control_xfer(rhport, request, (void *)&desc_url,
@@ -41,6 +41,9 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
 
     case VENDOR_REQUEST_MICROSOFT:
       if (request->wIndex == 0x07) {
+        if (stage != CONTROL_STAGE_SETUP)
+          return true;
+
         // Get Microsoft OS 2.0 compatible descriptor
         uint16_t total_len;
         memcpy(&total_len, desc_ms_os_20 + 8, 2);
@@ -56,9 +59,27 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
     break;
 
   case TUSB_REQ_TYPE_CLASS:
-    if (request->bRequest == 0x22) {
-      // response with status OK
-      return tud_control_status(rhport, request);
+    switch (request->bRequest) {
+    case VENDOR_CLASS_PROTOCOL_VERSION_CHECK:
+      if (stage != CONTROL_STAGE_SETUP)
+        return true;
+
+      if (request->wValue == VENDOR_CLASS_PROTOCOL_VERSION) {
+        // If the version matches, return success
+        return tud_control_status(rhport, request);
+      }
+      break;
+
+    case VENDOR_CLASS_GET_KEYBOARD_CONFIG_LENGTH:
+      if (stage != CONTROL_STAGE_SETUP)
+        return true;
+
+      uint16_t config_len = sizeof(keyboard_config_t);
+
+      return tud_control_xfer(rhport, request, &config_len, sizeof(config_len));
+
+    default:
+      break;
     }
     break;
 

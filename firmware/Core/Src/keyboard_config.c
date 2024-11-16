@@ -14,7 +14,7 @@
 // Default Configurations
 //--------------------------------------------------------------------+
 
-keyboard_config_t keyboard_config = {
+keyboard_config_t const default_keyboard_config = {
     .magic = KEYBOARD_CONFIG_MAGIC,
     .version = KEYBOARD_CONFIG_VERSION,
 

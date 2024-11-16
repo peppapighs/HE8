@@ -14,7 +14,7 @@
 // Default Configurations
 //--------------------------------------------------------------------+
 
-extern keyboard_config_t keyboard_config;
+extern keyboard_config_t const default_keyboard_config;
 
 //--------------------------------------------------------------------+
 // Switch Configuration Macros

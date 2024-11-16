@@ -38,7 +38,7 @@ typedef struct {
   // Current state
   uint8_t state;
   bool pressed;
-} key_state_t;
+} __attribute__((packed)) key_state_t;
 
 extern key_state_t key_switches[NUM_KEYS];
 
