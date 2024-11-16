@@ -8,6 +8,10 @@
 #ifndef INC_BOOTLOADER_CONFIG_H_
 #define INC_BOOTLOADER_CONFIG_H_
 
+//--------------------------------------------------------------------+
+// USB Device Configuration
+//--------------------------------------------------------------------+
+
 #define USB_MANUFACTURER_NAME "peppapighs"
 #define USB_PRODUCT_NAME "HE8 Bootloader"
 #define USB_DFU_MODE_NAME "HE8 DFU Mode"
@@ -17,6 +21,10 @@
 
 // Landing page
 #define WEBUSB_URL "example.com"
+
+//--------------------------------------------------------------------+
+// Bootloader Configuration
+//--------------------------------------------------------------------+
 
 // Delay until the boot button is sampled
 #define BUTTON_SAMPLE_DELAY_MS 100

@@ -9,6 +9,10 @@
 
 #include "usb_descriptors.h"
 
+//--------------------------------------------------------------------+
+// Vendor Callbacks
+//--------------------------------------------------------------------+
+
 const tusb_desc_webusb_url_t desc_url = {
     .bLength = 3 + sizeof(WEBUSB_URL) - 1,
     .bDescriptorType = TUSB_DESC_STRING, // WEBUSB URL type

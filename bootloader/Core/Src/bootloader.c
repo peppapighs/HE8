@@ -11,6 +11,10 @@
 
 #include "main.h"
 
+//--------------------------------------------------------------------+
+// Firmware Metadata
+//--------------------------------------------------------------------+
+
 // Get the end of stack address from the linker script to load the boot flag
 extern const uint32_t _estack;
 
@@ -21,17 +25,23 @@ typedef struct {
   uint32_t crc32;
 } __attribute__((packed)) fw_metadata_t;
 
+//--------------------------------------------------------------------+
+// Prototypes
+//--------------------------------------------------------------------+
+
 // Read the boot flag from the RAM and reset it back to 0. Return `true` if the
 // boot flag is equal to `BOOT_FLAG`
 static bool read_and_reset_boot_flag(void);
-
 // Delay then sample the boot button. Return `true` if the button is pressed
 static bool sample_button(void);
-
 // Verify the firmware. Return `true` if the firmware is valid and we are safe
 // to jump to the application
 static bool verify_firmware(void);
 static void jump_to_application(void);
+
+//--------------------------------------------------------------------+
+// Bootloader Functions
+//--------------------------------------------------------------------+
 
 void bootloader_init(void) {
   // Use branch AND here so we don't verify firmware unnecessarily as it is
@@ -43,6 +53,10 @@ void bootloader_init(void) {
 }
 
 void bootloader_loop(void) { tud_task(); }
+
+//--------------------------------------------------------------------+
+// Helper Functions
+//--------------------------------------------------------------------+
 
 static bool read_and_reset_boot_flag(void) {
   uint32_t *boot_flag = (uint32_t *)&_estack;

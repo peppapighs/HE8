@@ -8,6 +8,10 @@
 #ifndef INC_BOOTLOADER_H_
 #define INC_BOOTLOADER_H_
 
+//--------------------------------------------------------------------+
+// Bootloader Functions
+//--------------------------------------------------------------------+
+
 // Bootloader initialization
 void bootloader_init(void);
 

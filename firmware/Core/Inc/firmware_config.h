@@ -26,10 +26,6 @@
 // Landing page
 #define WEBUSB_URL "example.com"
 
-// Application should set the following boot flag at the end of the RAM and
-// perform a software to access the bootloader
-#define BOOT_FLAG 0xCC00FFEE
-
 //--------------------------------------------------------------------+
 // Hardware Configuration
 //--------------------------------------------------------------------+
@@ -52,6 +48,10 @@ extern uint16_t const mux_select_pins[NUM_MUX_SELECT_PINS];
 //--------------------------------------------------------------------+
 // Keyboard Configuration
 //--------------------------------------------------------------------+
+
+// Application should set the following boot flag at the end of the RAM and
+// perform a software to access the bootloader
+#define BOOT_FLAG 0xCC00FFEE
 
 #define KEYBOARD_CONFIG_MAGIC 0xBEEFDEAD
 #define KEYBOARD_CONFIG_VERSION 0x0100
