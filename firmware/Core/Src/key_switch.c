@@ -14,7 +14,7 @@
 // Switch State
 //--------------------------------------------------------------------+
 
-static uint8_t calibration_round;
+static uint32_t calibration_start_time;
 static uint8_t current_mux_index;
 key_state_t key_switches[NUM_KEYS];
 
@@ -23,12 +23,16 @@ key_state_t key_switches[NUM_KEYS];
 //--------------------------------------------------------------------+
 
 void key_switch_state_init(void) {
-  calibration_round = 0;
+  uint16_t const adc_rest_value =
+      switch_profiles[keyboard_config.switch_profile].adc_rest_value;
+
+  calibration_start_time = HAL_GetTick();
   current_mux_index = 0;
 
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
     key_switches[i].min_value = ADC_MAX_VALUE;
-    key_switches[i].max_value = 0;
+    // Initialize with approximation of the resting position
+    key_switches[i].max_value = adc_rest_value;
     key_switches[i].adc_value = 0;
     key_switches[i].distance = 0;
     key_switches[i].peek_distance = 0;
@@ -39,16 +43,14 @@ void key_switch_state_init(void) {
 }
 
 bool is_calibrating_key_switches(void) {
-  return calibration_round < CALIBRATION_ROUNDS;
+  return calibration_start_time + CALIBRATION_TIME_MS > HAL_GetTick();
 }
 
-void calibrate_key_switch(uint8_t key_index, uint16_t adc_value) {
+void calibrate_key_switch(uint8_t key_index) {
   uint16_t const adc_offset =
       switch_profiles[keyboard_config.switch_profile].adc_offset;
 
   key_state_t *key = &key_switches[key_index];
-
-  key->adc_value = adc_value;
 
   if (key->adc_value > key->max_value) {
     key->max_value = key->adc_value;
@@ -66,22 +68,18 @@ uint16_t adc_value_to_distance(uint8_t key_index) {
 
   key_state_t *key = &key_switches[key_index];
 
-  if (key->adc_value > key->max_value || key->min_value >= key->max_value)
+  if (key->adc_value >= key->max_value || key->min_value >= key->max_value)
     return 0;
-  if (key->adc_value < key->min_value)
+  if (key->adc_value <= key->min_value)
     return switch_distance;
 
-  // Quadratic interpolation
-  uint32_t const adjusted_min =
-      ((uint32_t)key->min_value * ADC_MIN_MULTIPLIER) >> 9;
-  uint32_t const numerator =
-      ((uint32_t)key->max_value + key->adc_value - adjusted_min) *
-      (key->max_value - key->adc_value) * switch_distance;
-  uint32_t const denominator =
-      ((uint32_t)key->max_value + key->min_value - adjusted_min) *
-      (key->max_value - key->min_value);
+  // Normalize the ADC value to the distance table granularity
+  uint16_t const normalized = (((uint32_t)(key->adc_value - key->min_value))
+                               << DISTANCE_TABLE_GRAIN_LOG2) /
+                              (key->max_value - key->min_value);
 
-  return numerator / denominator;
+  return (switch_distance * distance_table[normalized]) >>
+         DISTANCE_TABLE_GRAIN_LOG2;
 }
 
 void process_actuation(uint8_t key_index) {
@@ -195,16 +193,15 @@ void process_key(uint8_t key_index) {
 //--------------------------------------------------------------------+
 
 void update_key_switch(uint8_t key_index, uint16_t adc_value) {
-  if (calibration_round < CALIBRATION_ROUNDS) {
-    calibrate_key_switch(key_index, adc_value);
-  } else {
-    key_state_t *key = &key_switches[key_index];
+  key_state_t *key = &key_switches[key_index];
 
-    // Exponential smoothing
-    key->adc_value =
-        ((uint32_t)key->adc_value * ((1 << ADC_EXP_RSHIFT) - 1) + adc_value) >>
-        ADC_EXP_RSHIFT;
-  }
+  // Exponential smoothing
+  key->adc_value =
+      ((uint32_t)key->adc_value * ((1 << ADC_EXP_RSHIFT) - 1) + adc_value) >>
+      ADC_EXP_RSHIFT;
+
+  if (is_calibrating_key_switches())
+    calibrate_key_switch(key_index);
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
@@ -215,9 +212,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
       update_key_switch(mux_matrices[i][current_mux_index], adc_value);
 
     current_mux_index = (current_mux_index + 1) & (NUM_KEYS_PER_MUX - 1);
-    if (calibration_round < CALIBRATION_ROUNDS && current_mux_index == 0)
-      calibration_round++;
-
     for (uint8_t j = 0; j < NUM_MUX_SELECT_PINS; j++)
       HAL_GPIO_WritePin(mux_select_ports[j], mux_select_pins[j],
                         (GPIO_PinState)((current_mux_index >> j) & 1));

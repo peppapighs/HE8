@@ -60,13 +60,15 @@ extern uint16_t const mux_select_pins[NUM_MUX_SELECT_PINS];
 #define KEY_ROLL_OVER 6
 
 #define ADC_MAX_VALUE 4095
-// Calibration rounds
-#define CALIBRATION_ROUNDS 16
+// Calibration time
+// The interval should be long enough that the maximum ADC value is stable
+#define CALIBRATION_TIME_MS 200
 // ADC exponential smoothing
 // Higher the value, slower the response, but more stable
 #define ADC_EXP_RSHIFT 4
-// The closer the value to 1024, the more quadratic the ADC-to-distance curve
-#define ADC_MIN_MULTIPLIER 719
+// ADC-to-distance table granularity
+#define DISTANCE_TABLE_GRAIN_LOG2 10
+#define DISTANCE_TABLE_GRAIN (1 << DISTANCE_TABLE_GRAIN_LOG2)
 
 // Number of keys. Also represents unconnected MUX inputs
 #define NUM_KEYS 8

@@ -52,7 +52,7 @@ enum {
   REPORT_ID_CONSUMER_CONTROL,
   REPORT_ID_MOUSE,
   REPORT_ID_GAMEPAD,
-  REPORT_ID_COUNT
+  REPORT_ID_COUNT,
 };
 
 extern uint8_t const desc_ms_os_20[];

@@ -19,7 +19,8 @@ const tusb_desc_webusb_url_t desc_url = {
     .bLength = 3 + sizeof(WEBUSB_URL) - 1,
     .bDescriptorType = TUSB_DESC_STRING, // WEBUSB URL type
     .bScheme = 1,                        // 0: http, 1: https
-    .url = WEBUSB_URL};
+    .url = WEBUSB_URL,
+};
 
 // Invoked when a control transfer occurred on an interface of this class
 // Driver response accordingly to the request and the transfer stage
