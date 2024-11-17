@@ -7,9 +7,10 @@
 
 #include "eeprom.h"
 
+#include "stm32f4xx_hal.h"
+
 #include "firmware_config.h"
 #include "main.h"
-#include "stm32f4xx_hal.h"
 
 //--------------------------------------------------------------------+
 // EEPROM Functions
