@@ -17,9 +17,9 @@
 //--------------------------------------------------------------------+
 
 enum {
-  KEY_SWITCH_REST,
-  KEY_SWITCH_RT_DOWN,
-  KEY_SWITCH_RT_UP,
+  KEY_SWITCH_REST = 0x0,
+  KEY_SWITCH_RT_DOWN = 0x1,
+  KEY_SWITCH_RT_UP = 0x2,
 };
 
 typedef struct {
