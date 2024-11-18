@@ -26,6 +26,11 @@
 // Landing page
 #define WEBUSB_URL "example.com"
 
+#define VENDOR_BUFFER_SIZE 16384
+
+_Static_assert(VENDOR_BUFFER_SIZE <= UINT16_MAX,
+               "VENDOR_BUFFER_SIZE must be less than 65536");
+
 //--------------------------------------------------------------------+
 // Hardware Configuration
 //--------------------------------------------------------------------+
@@ -73,8 +78,13 @@ extern uint16_t const mux_select_pins[NUM_MUX_SELECT_PINS];
 // Number of keys. Also represents unconnected MUX inputs
 #define NUM_KEYS 8
 
+_Static_assert(NUM_KEYS <= UINT8_MAX, "NUM_KEYS must be less than 256");
+
 #define NUM_PROFILES 2
 #define NUM_LAYERS 4
+
+_Static_assert(NUM_PROFILES <= 16, "NUM_KEYS must be no more than 16");
+_Static_assert(NUM_LAYERS <= 16, "NUM_LAYERS must be no more than 16");
 
 // Key matrix
 extern uint8_t const mux_matrices[NUM_MUX][NUM_KEYS_PER_MUX];

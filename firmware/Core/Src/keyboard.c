@@ -146,22 +146,56 @@ void load_keyboard_config(void) {
   // Load default configuration
   memcpy(&keyboard_config, &default_keyboard_config, sizeof(keyboard_config));
 
-  // TODO: Uncomment this when properly implementing EEPROM functions
-  // // Read the magic and version from EEPROM
-  // eeprom_read(offsetof(keyboard_config_t, magic), (uint8_t *)&magic,
-  //             sizeof(magic));
-  // eeprom_read(offsetof(keyboard_config_t, version), (uint8_t *)&version,
-  //             sizeof(version));
+  // Read the magic and version from EEPROM
+  eeprom_read(offsetof(keyboard_config_t, magic), (uint8_t *)&magic,
+              sizeof(magic));
+  eeprom_read(offsetof(keyboard_config_t, version), (uint8_t *)&version,
+              sizeof(version));
 
-  // if (magic != KEYBOARD_CONFIG_MAGIC) {
-  //   // Set default configuration
-  //   eeprom_write(0, (uint8_t *)&keyboard_config, sizeof(keyboard_config));
-  // } else if (version != KEYBOARD_CONFIG_VERSION) {
-  //   // FIXME: Handle version migration
-  //   eeprom_write(0, (uint8_t *)&keyboard_config, sizeof(keyboard_config));
-  // } else {
-  //   eeprom_read(0, (uint8_t *)&keyboard_config, sizeof(keyboard_config));
-  // }
+  if (magic != KEYBOARD_CONFIG_MAGIC) {
+    // Set default configuration
+    save_keyboard_config();
+  } else if (version != KEYBOARD_CONFIG_VERSION) {
+    // FIXME: Handle version migration
+    save_keyboard_config();
+  } else {
+    eeprom_read(0, (uint8_t *)&keyboard_config, sizeof(keyboard_config));
+  }
+}
+
+void save_keyboard_config(void) {
+  eeprom_write(0, (uint8_t *)&keyboard_config, sizeof(keyboard_config));
+}
+
+void save_key_switch_config(uint8_t profile, uint8_t key_index) {
+  eeprom_write(
+      offsetof(keyboard_config_t, key_switch_config) +
+          ((uint32_t)profile * NUM_KEYS + key_index) *
+              sizeof(key_switch_config_t),
+      (uint8_t *)&keyboard_config.key_switch_config[profile][key_index],
+      sizeof(keyboard_config.key_switch_config[profile][key_index]));
+}
+
+void save_keymap(uint8_t profile, uint8_t layer, uint8_t key_index) {
+  eeprom_write(
+      offsetof(keyboard_config_t, key_switch_config) +
+          (((uint32_t)profile * NUM_LAYERS + layer) * NUM_KEYS + key_index) *
+              sizeof(uint16_t),
+      (uint8_t *)&keyboard_config.keymap[profile][layer][key_index],
+      sizeof(keyboard_config.keymap[profile][layer][key_index]));
+}
+
+void set_switch_profile(uint8_t profile) {
+  // Check if the profile is valid
+  if (profile >= SWITCH_PROF_COUNT)
+    return;
+
+  keyboard_config.switch_profile = profile;
+
+  // Save the new switch profile
+  eeprom_write(offsetof(keyboard_config_t, switch_profile),
+               (uint8_t *)&keyboard_config.switch_profile,
+               sizeof(keyboard_config.switch_profile));
 }
 
 void set_keyboard_profile(uint8_t profile) {

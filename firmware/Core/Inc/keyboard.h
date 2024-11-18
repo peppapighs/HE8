@@ -8,8 +8,6 @@
 #ifndef INC_KEYBOARD_H_
 #define INC_KEYBOARD_H_
 
-#include "tusb.h"
-
 #include "firmware_config.h"
 
 //--------------------------------------------------------------------+
@@ -82,8 +80,8 @@ typedef struct {
   uint16_t keymap[NUM_PROFILES][NUM_LAYERS][NUM_KEYS];
 } __attribute__((packed)) keyboard_config_t;
 
-TU_VERIFY_STATIC(sizeof(keyboard_config_t) <= UINT16_MAX,
-                 "keyboard_config_t size does not fit in uint16_t");
+_Static_assert(sizeof(keyboard_config_t) <= UINT16_MAX,
+               "keyboard_config_t size must be less than 65536");
 
 extern keyboard_config_t keyboard_config;
 
@@ -91,10 +89,18 @@ extern keyboard_config_t keyboard_config;
 // Configuration Functions
 //--------------------------------------------------------------------+
 
-// Load keyboard configuration from flash/EEPROM
+// Load keyboard configuration from EEPROM
 // If the configuration is invalid, load default configuration and save it
 // If the configuration version is outdated, migrate it
 void load_keyboard_config(void);
+// Save current keyboard configuration to EEPROM
+void save_keyboard_config(void);
+// Save current key switch configuration to EEPROM
+void save_key_switch_config(uint8_t profile, uint8_t key_index);
+// Save current keymap to EEPROM
+void save_keymap(uint8_t profile, uint8_t layer, uint8_t key_index);
+// Set switch profile
+void set_switch_profile(uint8_t profile);
 // Set keyboard profile
 void set_keyboard_profile(uint8_t profile);
 
