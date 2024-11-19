@@ -8,6 +8,8 @@
 #ifndef INC_KEYBOARD_H_
 #define INC_KEYBOARD_H_
 
+#include <stdbool.h>
+
 #include "firmware_config.h"
 
 //--------------------------------------------------------------------+
@@ -71,13 +73,12 @@ typedef struct {
   uint16_t version;
 
   // NKRO on/off
-  uint8_t nkro : 1;
-  uint8_t unused : 7;
-
+  bool nkro;
   // Switch profile
   uint8_t switch_profile;
   // Current keyboard profile
   uint8_t keyboard_profile;
+
   // Key switch configuration
   key_switch_config_t key_switch_config[NUM_PROFILES][NUM_KEYS];
   // Keymap
@@ -103,6 +104,8 @@ void save_keyboard_config(void);
 void save_key_switch_config(uint8_t profile, uint8_t key_index);
 // Save current keymap to EEPROM
 void save_keymap(uint8_t profile, uint8_t layer, uint8_t key_index);
+// Set NKRO on/off
+void set_nkro(bool nkro);
 // Set switch profile
 void set_switch_profile(uint8_t profile);
 // Set keyboard profile

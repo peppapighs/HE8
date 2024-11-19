@@ -111,7 +111,7 @@ void firmware_init(void) {
 
   load_keyboard_config();
 
-  key_switch_state_init();
+  start_calibrating_key_switches();
   keyboard_state_init();
   hid_data_init();
 
@@ -125,6 +125,11 @@ void firmware_init(void) {
 
 void firmware_loop(void) {
   tud_task();
+
+  // Must be after `tud_task()` in case the user recalibrates the key switches
+  // using a vendor request
+  while (is_calibrating_key_switches())
+    ;
 
   if (tud_suspended() && should_remote_wakeup) {
     // If we are in suspend mode, wake up the host

@@ -268,6 +268,23 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
       }
       return true;
 
+    case VENDOR_CLASS_RECALIBRATE:
+      if (stage == CONTROL_STAGE_SETUP) {
+        start_calibrating_key_switches();
+
+        return tud_control_xfer(rhport, request, vendor_buffer,
+                                request->wLength);
+      }
+      return true;
+
+    case VENDOR_CLASS_SET_NKRO:
+      if (stage == CONTROL_STAGE_SETUP) {
+        set_nkro(request->wValue & 1);
+
+        return tud_control_status(rhport, request);
+      }
+      return true;
+
     default:
       break;
     }

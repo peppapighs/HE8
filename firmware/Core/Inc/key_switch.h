@@ -46,8 +46,8 @@ extern key_state_t key_switches[NUM_KEYS];
 // Key Switch Functions
 //--------------------------------------------------------------------+
 
-// Initialize the key switch state
-void key_switch_state_init(void);
+// Initialize key switch state and start calibrating the key switches
+void start_calibrating_key_switches(void);
 // Return `true` if we are calibrating the key switches
 bool is_calibrating_key_switches(void);
 // Process ADC value change for a key switch

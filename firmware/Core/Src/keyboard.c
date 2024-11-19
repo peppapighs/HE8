@@ -185,6 +185,14 @@ void save_keymap(uint8_t profile, uint8_t layer, uint8_t key_index) {
       sizeof(keyboard_config.keymap[profile][layer][key_index]));
 }
 
+void set_nkro(bool nkro) {
+  keyboard_config.nkro = nkro;
+
+  // Save the new NKRO setting
+  eeprom_write(offsetof(keyboard_config_t, nkro),
+               (uint8_t *)&keyboard_config.nkro, sizeof(keyboard_config.nkro));
+}
+
 void set_switch_profile(uint8_t profile) {
   // Check if the profile is valid
   if (profile >= SWITCH_PROF_COUNT)

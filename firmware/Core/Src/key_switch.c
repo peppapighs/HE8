@@ -22,11 +22,10 @@ key_state_t key_switches[NUM_KEYS];
 // Key Switch Functions
 //--------------------------------------------------------------------+
 
-void key_switch_state_init(void) {
+void start_calibrating_key_switches(void) {
   uint16_t const adc_rest_value =
       switch_profiles[keyboard_config.switch_profile].adc_rest_value;
 
-  calibration_start_time = HAL_GetTick();
   current_mux_index = 0;
 
   for (uint8_t i = 0; i < NUM_KEYS; i++) {
@@ -40,6 +39,8 @@ void key_switch_state_init(void) {
     key_switches[i].state = KEY_SWITCH_REST;
     key_switches[i].pressed = false;
   }
+
+  calibration_start_time = HAL_GetTick();
 }
 
 bool is_calibrating_key_switches(void) {
