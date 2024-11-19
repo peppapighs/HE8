@@ -73,6 +73,9 @@
 #define CFG_TUD_VENDOR 1
 
 // HID buffer size Should be sufficient to hold ID (if any) + Data
-#define CFG_TUD_HID_EP_BUFSIZE 16
+#define CFG_TUD_HID_EP_BUFSIZE 64
+
+_Static_assert(CFG_TUD_HID_EP_BUFSIZE >= 16,
+               "Buffer size must be at least 16 bytes");
 
 #endif /* INC_TUSB_CONFIG_H_ */

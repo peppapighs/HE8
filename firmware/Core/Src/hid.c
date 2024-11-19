@@ -5,8 +5,6 @@
  *      Author: Pep
  */
 
-#include "tusb.h"
-
 #include "firmware.h"
 #include "usb_descriptors.h"
 
@@ -35,6 +33,9 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
 void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
                                 uint16_t len) {
   for (uint8_t i = report[0] + 1; i < REPORT_ID_COUNT; i++) {
+    if (i == REPORT_ID_KB_NKRO)
+      // If NKRO is disabled, skip the NKRO report
+      continue;
     if (send_hid_report(i))
       return;
   }

@@ -7,8 +7,6 @@
 
 #include "vendor.h"
 
-#include "tusb.h"
-
 #include "firmware_config.h"
 #include "key_switch.h"
 #include "keyboard.h"

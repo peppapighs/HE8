@@ -7,8 +7,6 @@
 
 #include "firmware.h"
 
-#include "tusb.h"
-
 #include "debug.h"
 #include "key_switch.h"
 #include "keyboard.h"
@@ -38,11 +36,11 @@ typedef struct {
 
 // Keyboard (including consumer control and system control) & modifier actions
 static uint8_t kb_mods_actions_count;
-static kb_mods_action_t kb_mods_actions[NUM_KEYS];
+static kb_mods_action_t kb_mods_actions[MAX_ACTION_COUNT];
 
 // Tap actions
 static uint8_t tap_actions_count;
-static kb_mods_action_t tap_actions[NUM_KEYS];
+static kb_mods_action_t tap_actions[MAX_ACTION_COUNT];
 
 enum {
   ACTION_LAYER_ON,
@@ -59,7 +57,7 @@ typedef struct {
 
 // Layer actions
 static uint8_t layer_actions_count;
-static layer_action_t layer_actions[NUM_KEYS];
+static layer_action_t layer_actions[MAX_ACTION_COUNT];
 
 enum {
   ACTION_PROFILE_SET,
@@ -72,12 +70,11 @@ typedef struct {
 
 // Profile actions
 static uint8_t profile_actions_count;
-static profile_action_t profile_actions[NUM_KEYS];
+static profile_action_t profile_actions[MAX_ACTION_COUNT];
 
 // Keyboard keycodes
 static uint8_t keyboard_keycodes_count;
-static uint8_t keyboard_keycodes[KEY_ROLL_OVER];
-static uint8_t keycodes_modifier;
+static hid_kb_nkro_report_t keyboard_report;
 
 // System control keycode
 static uint16_t system_control_keycode;
@@ -134,7 +131,8 @@ void firmware_loop(void) {
     tud_remote_wakeup();
   } else if (tud_hid_ready()) {
     // Otherwise, start the HID report chain
-    send_hid_report(REPORT_ID_KEYBOARD);
+    send_hid_report(keyboard_config.nkro ? REPORT_ID_KB_NKRO
+                                         : REPORT_ID_KEYBOARD);
     // Poll key switches after sending the report to avoid latency
     keyboard_task();
   }
@@ -158,8 +156,7 @@ static void hid_data_init(void) {
   profile_actions_count = 0;
 
   keyboard_keycodes_count = 0;
-  memset(keyboard_keycodes, KC_NO, KEY_ROLL_OVER);
-  keycodes_modifier = 0;
+  memset(&keyboard_report, 0, sizeof(hid_kb_nkro_report_t));
 
   system_control_keycode = KC_NO;
   last_system_control_keycode = KC_NO;
@@ -184,8 +181,7 @@ void clear_hid_data(void) {
   profile_actions_count = 0;
 
   keyboard_keycodes_count = 0;
-  memset(keyboard_keycodes, KC_NO, KEY_ROLL_OVER);
-  keycodes_modifier = 0;
+  memset(&keyboard_report, 0, sizeof(hid_kb_nkro_report_t));
 
   system_control_keycode = KC_NO;
 
@@ -212,18 +208,27 @@ uint16_t get_keycode(uint8_t key_index) {
 }
 
 void add_kb_mods_action(uint8_t keycode, uint8_t modifiers) {
+  if (kb_mods_actions_count >= MAX_ACTION_COUNT)
+    return;
+
   kb_mods_actions[kb_mods_actions_count].keycode = keycode;
   kb_mods_actions[kb_mods_actions_count].modifiers = modifiers;
   kb_mods_actions_count++;
 }
 
 void add_tap_action(uint8_t keycode, uint8_t modifiers) {
+  if (tap_actions_count >= MAX_ACTION_COUNT)
+    return;
+
   tap_actions[tap_actions_count].keycode = keycode;
   tap_actions[tap_actions_count].modifiers = modifiers;
   tap_actions_count++;
 }
 
 void add_layer_action(uint8_t action, uint8_t layer, uint8_t modifiers) {
+  if (layer_actions_count >= MAX_ACTION_COUNT)
+    return;
+
   layer_actions[layer_actions_count].action = action;
   layer_actions[layer_actions_count].layer = layer;
   layer_actions[layer_actions_count].modifiers = modifiers;
@@ -231,6 +236,9 @@ void add_layer_action(uint8_t action, uint8_t layer, uint8_t modifiers) {
 }
 
 void add_profile_action(uint8_t action, uint8_t profile) {
+  if (profile_actions_count >= MAX_ACTION_COUNT)
+    return;
+
   profile_actions[profile_actions_count].action = action;
   profile_actions[profile_actions_count].profile = profile;
   profile_actions_count++;
@@ -238,14 +246,22 @@ void add_profile_action(uint8_t action, uint8_t profile) {
 
 void process_basic_keycode(uint8_t keycode) {
   if (IS_KEYBOARD_KEY(keycode)) {
-    if (keyboard_keycodes_count >= KEY_ROLL_OVER)
-      return;
+    // Add the keycode to NKRO bitmap
+    keyboard_report.bitmap[keycode >> 3] |= 1 << (keycode & 0x07);
 
-    keyboard_keycodes[keyboard_keycodes_count] = keycode;
-    keyboard_keycodes_count++;
+    if (keyboard_keycodes_count < 6) {
+      for (uint8_t i = 0; i < keyboard_keycodes_count; i++) {
+        if (keyboard_report.keycodes[i] == keycode)
+          // Skip if the keycode is already in the report
+          return;
+      }
+
+      keyboard_report.keycodes[keyboard_keycodes_count] = keycode;
+      keyboard_keycodes_count++;
+    }
 
   } else if (IS_MODIFIER_KEY(keycode)) {
-    keycodes_modifier |= keycode_to_modifier(keycode);
+    keyboard_report.modifiers |= keycode_to_modifier(keycode);
 
   } else if (IS_SYSTEM_CONTROL_KEY(keycode)) {
     // Up to one system control keycode can be sent at a time
@@ -376,19 +392,19 @@ static void keyboard_task(void) {
   // We prioritize tap actions
   for (uint8_t i = 0; i < tap_actions_count; i++) {
     process_basic_keycode(tap_actions[i].keycode);
-    keycodes_modifier |= tap_actions[i].modifiers;
+    keyboard_report.modifiers |= tap_actions[i].modifiers;
   }
 
   for (uint8_t i = 0; i < kb_mods_actions_count; i++) {
     process_basic_keycode(kb_mods_actions[i].keycode);
-    keycodes_modifier |= kb_mods_actions[i].modifiers;
+    keyboard_report.modifiers |= kb_mods_actions[i].modifiers;
   }
 
   for (uint8_t i = 0; i < layer_actions_count; i++) {
     switch (layer_actions[i].action) {
     case ACTION_LAYER_ON:
       layer_mask |= 1 << layer_actions[i].layer;
-      keycodes_modifier |= layer_actions[i].modifiers;
+      keyboard_report.modifiers |= layer_actions[i].modifiers;
       break;
 
     case ACTION_LAYER_OFF:
@@ -437,8 +453,14 @@ static void keyboard_task(void) {
 bool send_hid_report(uint8_t report_id) {
   switch (report_id) {
   case REPORT_ID_KEYBOARD:
-    tud_hid_keyboard_report(REPORT_ID_KEYBOARD, keycodes_modifier,
-                            keyboard_keycodes);
+    // We can use the NKRO report since the first 8 bytes are the same
+    tud_hid_report(REPORT_ID_KEYBOARD, &keyboard_report,
+                   sizeof(hid_keyboard_report_t));
+    return true;
+
+  case REPORT_ID_KB_NKRO:
+    tud_hid_report(REPORT_ID_KB_NKRO, &keyboard_report,
+                   sizeof(hid_kb_nkro_report_t));
     return true;
 
   case REPORT_ID_SYSTEM_CONTROL:

@@ -12,6 +12,8 @@
 
 #include "stm32f4xx_hal.h"
 
+#include "keycodes.h"
+
 //--------------------------------------------------------------------+
 // USB Device Configuration
 //--------------------------------------------------------------------+
@@ -22,6 +24,12 @@
 
 #define USB_VENDOR_ID 0xBeef
 #define USB_PRODUCT_ID 0xAb01
+
+#define NUM_NKRO_BYTES 24
+
+_Static_assert(
+    NUM_NKRO_BYTES * 8 >= KC_EXSL,
+    "NUM_NKRO_BYTES must be large enough to cover all basic keycodes");
 
 // Landing page
 #define WEBUSB_URL "example.com"
@@ -61,8 +69,10 @@ extern uint16_t const mux_select_pins[NUM_MUX_SELECT_PINS];
 #define FIRMWARE_MAGIC 0xBEEFDEAD
 #define FIRMWARE_VERSION 0x0100
 
-// TinyUSB supports up to 6 keys per report
-#define KEY_ROLL_OVER 6
+#define MAX_ACTION_COUNT 255
+
+_Static_assert(MAX_ACTION_COUNT <= UINT8_MAX,
+               "MAX_ACTION_COUNT must be less than 256");
 
 #define ADC_MAX_VALUE 4095
 // Calibration time

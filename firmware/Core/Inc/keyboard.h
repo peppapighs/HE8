@@ -70,6 +70,10 @@ typedef struct {
   uint32_t magic;
   uint16_t version;
 
+  // NKRO on/off
+  uint8_t nkro : 1;
+  uint8_t unused : 7;
+
   // Switch profile
   uint8_t switch_profile;
   // Current keyboard profile
