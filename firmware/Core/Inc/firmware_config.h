@@ -58,8 +58,8 @@ extern uint16_t const mux_select_pins[NUM_MUX_SELECT_PINS];
 // perform a software to access the bootloader
 #define BOOT_FLAG 0xCC00FFEE
 
-#define KEYBOARD_CONFIG_MAGIC 0xBEEFDEAD
-#define KEYBOARD_CONFIG_VERSION 0x0100
+#define FIRMWARE_MAGIC 0xBEEFDEAD
+#define FIRMWARE_VERSION 0x0100
 
 // TinyUSB supports up to 6 keys per report
 #define KEY_ROLL_OVER 6

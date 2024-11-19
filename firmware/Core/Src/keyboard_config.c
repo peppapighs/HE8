@@ -15,8 +15,8 @@
 //--------------------------------------------------------------------+
 
 keyboard_config_t const default_keyboard_config = {
-    .magic = KEYBOARD_CONFIG_MAGIC,
-    .version = KEYBOARD_CONFIG_VERSION,
+    .magic = FIRMWARE_MAGIC,
+    .version = FIRMWARE_VERSION,
 
     .switch_profile = SWITCH_PROF_GEON_RAW_HE,
     .keyboard_profile = 0,

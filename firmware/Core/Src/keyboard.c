@@ -152,10 +152,10 @@ void load_keyboard_config(void) {
   eeprom_read(offsetof(keyboard_config_t, version), (uint8_t *)&version,
               sizeof(version));
 
-  if (magic != KEYBOARD_CONFIG_MAGIC) {
+  if (magic != FIRMWARE_MAGIC) {
     // Set default configuration
     save_keyboard_config();
-  } else if (version != KEYBOARD_CONFIG_VERSION) {
+  } else if (version != FIRMWARE_VERSION) {
     // FIXME: Handle version migration
     save_keyboard_config();
   } else {

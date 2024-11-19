@@ -77,6 +77,19 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
       }
       return true;
 
+    case VENDOR_CLASS_PROTOCOL_FIRMWARE_VERSION:
+      if (stage == CONTROL_STAGE_SETUP) {
+        if (request->wLength != sizeof(uint16_t))
+          // Wrong request length
+          return false;
+
+        uint16_t firmware_version = FIRMWARE_VERSION;
+
+        return tud_control_xfer(rhport, request, &firmware_version,
+                                sizeof(firmware_version));
+      }
+      return true;
+
     case VENDOR_CLASS_BOOTLOADER_JUMP:
       if (stage == CONTROL_STAGE_SETUP) {
         uint32_t *boot_flag = (uint32_t *)&_estack;
@@ -102,12 +115,12 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
 
     case VENDOR_CLASS_GET_KEYBOARD_CONFIG:
       if (stage == CONTROL_STAGE_SETUP) {
-        if (request->wLength == sizeof(keyboard_config))
-          return tud_control_xfer(rhport, request, &keyboard_config,
-                                  sizeof(keyboard_config));
+        if (request->wLength != sizeof(keyboard_config))
+          // Wrong request length
+          return false;
 
-        // Wrong request length
-        return false;
+        return tud_control_xfer(rhport, request, &keyboard_config,
+                                sizeof(keyboard_config));
       }
       return true;
 
