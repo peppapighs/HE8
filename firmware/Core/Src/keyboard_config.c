@@ -63,12 +63,12 @@ keyboard_config_t const default_keyboard_config = {
                 {
                     _______,
                     KC_PSCR,
-                    _______,
-                    _______,
-                    _______,
-                    _______,
-                    _______,
-                    _______,
+                    FW_BOOTLOADER,
+                    FW_REBOOT,
+                    FW_FACTORY_RESET,
+                    FW_NKRO_ON,
+                    FW_NKRO_OFF,
+                    FW_NKRO_TOGGLE,
                 },
                 {
                     KC_0,

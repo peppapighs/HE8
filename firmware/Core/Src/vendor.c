@@ -17,9 +17,6 @@
 // Vendor Callbacks
 //--------------------------------------------------------------------+
 
-// Get the end of stack address from the linker script to load the boot flag
-extern const uint32_t _estack;
-
 const tusb_desc_webusb_url_t desc_url = {
     .bLength = 3 + sizeof(WEBUSB_URL) - 1,
     .bDescriptorType = TUSB_DESC_STRING, // WEBUSB URL type
@@ -90,11 +87,7 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
 
     case VENDOR_CLASS_BOOTLOADER_JUMP:
       if (stage == CONTROL_STAGE_SETUP) {
-        uint32_t *boot_flag = (uint32_t *)&_estack;
-
-        // Set the boot flag to the magic value
-        *boot_flag = BOOT_FLAG;
-        NVIC_SystemReset();
+        reboot_to_bootloader();
 
         return tud_control_status(rhport, request);
       }
@@ -102,10 +95,7 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
 
     case VENDOR_CLASS_FACTORY_RESET:
       if (stage == CONTROL_STAGE_SETUP) {
-        memcpy(&keyboard_config, &default_keyboard_config,
-               sizeof(keyboard_config));
-
-        save_keyboard_config();
+        factory_reset();
 
         return tud_control_status(rhport, request);
       }

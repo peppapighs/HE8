@@ -139,6 +139,17 @@ keyboard_config_t keyboard_config;
 // Configuration Functions
 //--------------------------------------------------------------------+
 
+// Get the end of stack address from the linker script to load the boot flag
+extern const uint32_t _estack;
+
+void reboot_to_bootloader(void) {
+  uint32_t *boot_flag = (uint32_t *)&_estack;
+
+  // Set the boot flag to the magic value
+  *boot_flag = BOOT_FLAG;
+  NVIC_SystemReset();
+}
+
 void load_keyboard_config(void) {
   uint32_t magic = 0;
   uint16_t version = 0;
@@ -165,6 +176,12 @@ void load_keyboard_config(void) {
 
 void save_keyboard_config(void) {
   eeprom_write(0, (uint8_t *)&keyboard_config, sizeof(keyboard_config));
+}
+
+void factory_reset(void) {
+  memcpy(&keyboard_config, &default_keyboard_config, sizeof(keyboard_config));
+
+  save_keyboard_config();
 }
 
 void save_key_switch_config(uint8_t profile, uint8_t key_index) {

@@ -272,8 +272,16 @@ enum {
   PROFILE_SET = 0x5300,
   PROFILE_SET_MAX = 0x530F,
 
+  // Firmware related keycodes
+  FW_BOOTLOADER = 0x7000,
+  FW_REBOOT = 0x7001,
+  FW_FACTORY_RESET = 0x7002,
+  FW_NKRO_ON = 0x7003,
+  FW_NKRO_OFF = 0x7004,
+  FW_NKRO_TOGGLE = 0x7005,
+
   // End of one-time keycodes
-  ONE_TIME_KC_END = 0x5FFF,
+  ONE_TIME_KC_END = 0x7FFF,
 
   // Aliases
   XXXXXXX = KC_NO,
@@ -319,6 +327,10 @@ enum {
 // Profile ranges
 #define IS_PROFILE_SET(keycode)                                                \
   (PROFILE_SET <= (keycode) && (keycode) <= PROFILE_SET_MAX)
+
+// Firmware related ranges
+#define IS_FIRMWARE_KEY(keycode)                                               \
+  (FW_BOOTLOADER <= (keycode) && (keycode) <= FW_NKRO_TOGGLE)
 
 // One-time key ranges
 #define IS_ONE_TIME_KC(keycode)                                                \

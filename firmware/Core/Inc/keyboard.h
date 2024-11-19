@@ -94,12 +94,16 @@ extern keyboard_config_t keyboard_config;
 // Configuration Functions
 //--------------------------------------------------------------------+
 
+// Reboot to bootloader
+void reboot_to_bootloader(void);
 // Load keyboard configuration from EEPROM
 // If the configuration is invalid, load default configuration and save it
 // If the configuration version is outdated, migrate it
 void load_keyboard_config(void);
 // Save current keyboard configuration to EEPROM
 void save_keyboard_config(void);
+// Factory reset
+void factory_reset(void);
 // Save current key switch configuration to EEPROM
 void save_key_switch_config(uint8_t profile, uint8_t key_index);
 // Save current keymap to EEPROM

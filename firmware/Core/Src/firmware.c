@@ -284,6 +284,27 @@ void process_basic_keycode(uint8_t keycode) {
   }
 }
 
+void process_firmware_keycode(uint16_t keycode) {
+  if (keycode == FW_BOOTLOADER) {
+    reboot_to_bootloader();
+
+  } else if (keycode == FW_REBOOT) {
+    NVIC_SystemReset();
+
+  } else if (keycode == FW_FACTORY_RESET) {
+    factory_reset();
+
+  } else if (keycode == FW_NKRO_ON) {
+    set_nkro(true);
+
+  } else if (keycode == FW_NKRO_OFF) {
+    set_nkro(false);
+
+  } else if (keycode == FW_NKRO_TOGGLE) {
+    set_nkro(!keyboard_config.nkro);
+  }
+}
+
 static void keyboard_task(void) {
   uint8_t const keyboard_profile = keyboard_config.keyboard_profile;
 
@@ -358,6 +379,9 @@ static void keyboard_task(void) {
 
       } else if (IS_PROFILE_SET(keycode)) {
         add_profile_action(ACTION_PROFILE_SET, PS_PROFILE(keycode));
+
+      } else if (IS_FIRMWARE_KEY(keycode)) {
+        process_firmware_keycode(keycode);
       }
     } else {
       current_buffer[i] = KC_NO;
