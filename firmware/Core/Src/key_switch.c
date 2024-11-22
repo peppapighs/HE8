@@ -69,18 +69,20 @@ uint16_t adc_value_to_distance(uint8_t key_index) {
 
   key_state_t *key = &key_switches[key_index];
 
-  if (key->adc_value >= key->max_value || key->min_value >= key->max_value)
+  if (key->adc_value > key->max_value || key->min_value >= key->max_value)
     return 0;
-  if (key->adc_value <= key->min_value)
+  if (key->adc_value < key->min_value)
     return switch_distance;
 
   // Normalize the ADC value to the distance table granularity
-  uint16_t const normalized = (((uint32_t)(key->adc_value - key->min_value))
-                               << DISTANCE_TABLE_GRAIN_LOG2) /
+  uint16_t const normalized = ((((uint32_t)(key->adc_value - key->min_value))
+                                << DISTANCE_TABLE_GRAIN_LOG2) +
+                               ((key->max_value - key->min_value) >> 1)) /
                               (key->max_value - key->min_value);
+  uint32_t const d = (switch_distance * distance_table[normalized]);
 
-  return (switch_distance * distance_table[normalized]) >>
-         DISTANCE_TABLE_GRAIN_LOG2;
+  return (d >> DISTANCE_TABLE_GRAIN_LOG2) +
+         ((d >> (DISTANCE_TABLE_GRAIN_LOG2 - 1)) & 1);
 }
 
 void process_actuation(uint8_t key_index) {

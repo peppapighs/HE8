@@ -8,7 +8,7 @@ if __name__ == "__main__":
     x = args.granularity
 
     ret = []
-    for i in range(x):
-        ret.append(round((((x - 1 - i) / (x - 1)) ** (2 / 3)) * (x - 1)))
+    for i in range(x + 1):
+        ret.append(round((((x - i) / x) ** (2 / 3)) * x))
 
     print(ret)
