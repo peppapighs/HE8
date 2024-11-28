@@ -108,7 +108,7 @@ static void jump_to_application(void) {
   SysTick->VAL = 0;
 
   // Clear interrupt enable and pending registers
-  for (size_t i = 0; i < 16; i++) {
+  for (size_t i = 0; i < 8; i++) {
     NVIC->ICER[i] = 0xFFFFFFFF;
     NVIC->ICPR[i] = 0xFFFFFFFF;
   }

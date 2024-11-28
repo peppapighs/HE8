@@ -53,7 +53,7 @@ keyboard_config_t const default_keyboard_config = {
                 {
                     LT(1, KC_MUTE),
                     KC_UP,
-                    TG(2),
+                    LT(2, KC_MPLY),
                     KC_VOLU,
                     KC_LEFT,
                     KC_DOWN,
